@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [22, 24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: npm test
+      # CLI を実際に動かす（init → check）
+      - name: smoke test (init, check)
+        run: |
+          set -eu
+          tmp=$(mktemp -d)
+          cd "$tmp"
+          node "$GITHUB_WORKSPACE/bin/spec-ids.mjs" init --domain DEMO
+          mkdir -p specs/current/get_thing src
+          printf '### SPEC-DEMO-GET-THING-001 x\n' > specs/current/get_thing/spec.md
+          printf "it('SPEC-DEMO-GET-THING-001 x', () => {});\n" > src/a.test.ts
+          node "$GITHUB_WORKSPACE/bin/spec-ids.mjs" check
+          test "$(node "$GITHUB_WORKSPACE/bin/spec-ids.mjs" next get_thing)" = "SPEC-DEMO-GET-THING-002"

@@ -1,0 +1,54 @@
+{
+  "name": "@shuji-bonji/spec-ids",
+  "version": "0.1.0",
+  "description": "仕様 ID（SPEC-<領域>-<機能>-<3 桁>）を仕様書の見出しとテスト名で突き合わせ、CI で止める CLI。採番と置き場の初期化も行う",
+  "keywords": [
+    "spec",
+    "specification",
+    "traceability",
+    "acceptance-test",
+    "ci",
+    "cli",
+    "vitest",
+    "jasmine",
+    "agents"
+  ],
+  "author": "shuji-bonji",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shuji-bonji/spec-ids.git"
+  },
+  "homepage": "https://github.com/shuji-bonji/spec-ids#readme",
+  "bugs": {
+    "url": "https://github.com/shuji-bonji/spec-ids/issues"
+  },
+  "type": "module",
+  "bin": {
+    "spec-ids": "bin/spec-ids.mjs"
+  },
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "files": [
+    "bin",
+    "src",
+    "templates"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "test": "node --test \"test/**/*.test.mjs\"",
+    "lint": "biome lint bin src test",
+    "format": "biome format --write bin src test",
+    "format:check": "biome format bin src test",
+    "check": "biome check --write bin src test"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.12"
+  }
+}
