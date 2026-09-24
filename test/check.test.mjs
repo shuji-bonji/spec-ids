@@ -10,7 +10,14 @@ test('仕様とテストが一致していれば ok', () => {
   });
   const r = check(root, CONFIG);
   assert.equal(r.ok, true);
-  assert.deepEqual(r.counts, { specFiles: 1, specIds: 2, headings: 2, testFiles: 1, testIds: 2 });
+  assert.deepEqual(r.counts, {
+    currentFiles: 1,
+    currentHeadings: 2,
+    changesFiles: 0,
+    changesHeadings: 0,
+    testFiles: 1,
+    testIds: 2,
+  });
   assert.match(formatReport(r).out.at(-1), /^OK/);
 });
 
@@ -83,19 +90,93 @@ test('領域が設定と違えば報告する', () => {
   assert.equal(r.misplaced.length, 2);
 });
 
-test('specs/changes の草案も突合の対象で、specs/releases は対象外', () => {
+const ADDED_003 = '## ADDED\n\n### SPEC-NTA-GET-TSUTATSU-003 新しい\n';
+const TEST_003 = `it('SPEC-NTA-GET-TSUTATSU-003 新しい振る舞い', () => {});`;
+
+test('仕様 PR のあと: changes にだけある ID はテストを求めない', () => {
   const root = fixture({
     'specs/current/nta_get_tsutatsu/spec.md': SPEC_OK,
-    'specs/changes/20260922-x/spec.md': '## ADDED\n\n### SPEC-NTA-GET-TSUTATSU-003 新しい\n',
-    'specs/releases/v1.0.0/nta_get_tsutatsu/spec.md': '### SPEC-NTA-GET-TSUTATSU-099 古い版\n',
+    'specs/changes/20260925-x/spec.md': ADDED_003,
     'src/x.test.ts': TEST_OK,
   });
   const r = check(root, CONFIG);
+  assert.equal(r.ok, true);
+  assert.equal(r.counts.changesHeadings, 1);
+});
+
+test('実装 PR の途中: テストの ID が changes にあれば、current がまだ古くても通る', () => {
+  const root = fixture({
+    'specs/current/nta_get_tsutatsu/spec.md': SPEC_OK,
+    'specs/changes/20260925-x/spec.md': ADDED_003,
+    'src/x.test.ts': `${TEST_OK}\n${TEST_003}`,
+  });
+  assert.equal(check(root, CONFIG).ok, true);
+});
+
+test('取り込み後: current とテストに ID があり、releases へ移った差分は見ない', () => {
+  const root = fixture({
+    'specs/current/nta_get_tsutatsu/spec.md': `${SPEC_OK}\n### SPEC-NTA-GET-TSUTATSU-003 新しい\n`,
+    'specs/releases/v1.0.0/20260925-x/specs/nta_get_tsutatsu/spec.md': ADDED_003,
+    'specs/releases/v0.9.0/nta_get_tsutatsu/spec.md': '### SPEC-NTA-GET-TSUTATSU-099 古い版\n',
+    'src/x.test.ts': `${TEST_OK}\n${TEST_003}`,
+  });
+  const r = check(root, CONFIG);
+  assert.equal(r.ok, true);
+  assert.equal(r.counts.changesFiles, 0);
+});
+
+test('current にある ID は、changes に同じ見出しがあってもテストを求める', () => {
+  const root = fixture({
+    'specs/current/nta_get_tsutatsu/spec.md': SPEC_OK,
+    'specs/changes/20260925-x/spec.md': '## MODIFIED\n\n### SPEC-NTA-GET-TSUTATSU-002 変える\n',
+    'src/x.test.ts': `it('SPEC-NTA-GET-TSUTATSU-001 a', () => {});`,
+  });
+  const r = check(root, CONFIG);
+  assert.equal(r.ok, false);
   assert.deepEqual(
     r.missingTests.map((m) => m.id),
-    ['SPEC-NTA-GET-TSUTATSU-003']
+    ['SPEC-NTA-GET-TSUTATSU-002']
   );
-  assert.equal(r.missingSpecs.length, 0);
+});
+
+test('MODIFIED の見出しが current と同じ ID でも、重複として扱わない', () => {
+  const root = fixture({
+    'specs/current/nta_get_tsutatsu/spec.md': SPEC_OK,
+    'specs/changes/20260925-x/spec.md': '## MODIFIED\n\n### SPEC-NTA-GET-TSUTATSU-002 変える\n',
+    'src/x.test.ts': TEST_OK,
+  });
+  const r = check(root, CONFIG);
+  assert.equal(r.ok, true);
+  assert.equal(r.duplicated.length, 0);
+});
+
+test('changes の中で同じ ID の見出しが 2 つあれば重複として報告する', () => {
+  const root = fixture({
+    'specs/current/nta_get_tsutatsu/spec.md': SPEC_OK,
+    'specs/changes/20260925-a/spec.md': ADDED_003,
+    'specs/changes/20260925-b/spec.md': ADDED_003,
+    'src/x.test.ts': TEST_OK,
+  });
+  const r = check(root, CONFIG);
+  assert.equal(r.ok, false);
+  assert.deepEqual(
+    r.duplicated.map((d) => [d.id, d.box, d.files.length]),
+    [['SPEC-NTA-GET-TSUTATSU-003', 'changes', 2]]
+  );
+});
+
+test('仕様の ID は見出しだけを数える（本文の参照だけの ID はテストにあれば報告する）', () => {
+  const root = fixture({
+    'specs/current/nta_get_tsutatsu/spec.md': `${SPEC_OK}\n本文だけで SPEC-NTA-GET-TSUTATSU-005 に触れる。\n`,
+    'src/x.test.ts': `${TEST_OK}\nit('SPEC-NTA-GET-TSUTATSU-005 x', () => {});`,
+  });
+  const r = check(root, CONFIG);
+  assert.equal(r.ok, false);
+  assert.deepEqual(
+    r.missingSpecs.map((m) => m.id),
+    ['SPEC-NTA-GET-TSUTATSU-005']
+  );
+  assert.equal(r.missingTests.length, 0);
 });
 
 test('tests の glob は設定で変えられる（Jasmine の *.spec.ts など）', () => {

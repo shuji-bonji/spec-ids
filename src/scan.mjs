@@ -30,12 +30,19 @@ export function walk(dir, pred, out = []) {
   return out;
 }
 
-/** 突合の対象になる仕様ファイル（現行と進行中の差分。releases/ は見ない） */
+/** 現行の仕様ファイル（`specs/current/` の下の `spec.md`）。出荷済みの正 */
+export function currentSpecFiles(root) {
+  return walk(join(root, 'specs', 'current'), (p) => p.endsWith(`${sep}spec.md`));
+}
+
+/** 進行中の差分の仕様ファイル（`specs/changes/` の下の `spec.md`）。承認済みでも未出荷 */
+export function changesSpecFiles(root) {
+  return walk(join(root, 'specs', 'changes'), (p) => p.endsWith(`${sep}spec.md`));
+}
+
+/** 現行と進行中の差分を合わせた仕様ファイル（採番が読む範囲）。releases/ は見ない */
 export function specFiles(root) {
-  return [
-    ...walk(join(root, 'specs', 'current'), (p) => p.endsWith(`${sep}spec.md`)),
-    ...walk(join(root, 'specs', 'changes'), (p) => p.endsWith(`${sep}spec.md`)),
-  ];
+  return [...currentSpecFiles(root), ...changesSpecFiles(root)];
 }
 
 /**
