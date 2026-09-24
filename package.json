@@ -1,6 +1,6 @@
 {
   "name": "@shuji-bonji/spec-ids",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "仕様 ID（SPEC-<領域>-<機能>-<3 桁>）を仕様書の見出しとテスト名で突き合わせ、CI で止める CLI。採番と置き場の初期化も行う",
   "keywords": [
     "spec",
