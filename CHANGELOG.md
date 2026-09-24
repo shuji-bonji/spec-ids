@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.0（未公開）
+## 0.1.0 — 2026-09-24
 
 - 初版。houki-nta-mcp の `scripts/spec-id-format.mjs` / `check-spec-ids.mjs` / `next-spec-id.mjs` を CLI にまとめた
 - `spec-ids check`: 見出しの重複 / 仕様にあってテストに無い ID / テストにあって仕様に無い ID / 見出しの機能とディレクトリ名の不一致、のどれかで exit 1
