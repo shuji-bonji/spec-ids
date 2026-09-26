@@ -160,6 +160,17 @@ git merge --ff-only <PRのブランチ>
 git push origin main
 ```
 
+仕様 PR の承認を待たずに、仕様 PR のブランチの上に実装 PR のブランチを積んで進めることがあります。その場合、仕様 PR のコミットは承認日を書いたとき（や squash したとき）に作り直されるので、実装 PR のブランチは作り直す前のコミットの上に残ります。仕様 PR を ff マージした後、実装 PR のブランチを新しい main の上に載せ直してから ff マージします。
+
+```bash
+# <旧仕様コミット> は、実装 PR のブランチが載っている、作り直す前の仕様 PR のコミット
+git rebase --onto main <旧仕様コミット> <実装 PR のブランチ>
+git switch main
+git merge --ff-only <実装 PR のブランチ>
+```
+
+載せ直さずにマージコミットで合わせると、作り直す前と後の両方の仕様コミットが main に入り、`specs/changes/` の差分と `specs/releases/<tag>/` への移動が両方残ります（7 章）。
+
 ### 3.2 承認日
 
 - 承認日は、人がマージの前にそのブランチで書く。マージの後に書くと、承認日を書くためだけの PR が要る
@@ -241,7 +252,7 @@ ID は npx spec-ids next <dir> --count N で取る。コミットは 1 つ。
 
 ## 7. 回してみて分かったこと
 
-houki-nta-mcp で差分 2 件（`20260924-tsutatsu-clause-forms`、`20260925-tsutatsu-live-toc`）と初版起こし 2 件を回した記録です。
+houki-nta-mcp で差分 2 件（`20260924-tsutatsu-clause-forms`、`20260925-tsutatsu-live-toc`）と初版起こし 2 件を、houki-abbreviations で初版起こし 1 件と差分 2 件（`20260927-undecided-to-issues`、`20260927-untested-behaviors`）を回した記録です。
 
 | 起きたこと | 原因 | 対処 |
 |---|---|---|
@@ -253,6 +264,9 @@ houki-nta-mcp で差分 2 件（`20260924-tsutatsu-clause-forms`、`20260925-tsu
 | 手元で `spec-ids check` が CI と違う結果を出した | 手元の node_modules が古い版のまま | 依存を上げた後は `npm ci` をやり直す |
 | 差分を読みづらい場面があった | 文面の大きな書き換え | 見出し単位の差分にし、`git diff --no-index --word-diff` を併用する |
 | 初版起こしで、仕様に書かれたとおりの動きが不具合だった（一度取得すると同じ通達の他の節が取れない） | 初版は実装から起こすので、不具合も文面に入る | 未決に書き、Issue → 仕様 PR にする。試用（実際の呼び出し）で見つかることが多い |
+| 実装 PR をマージした後の main に、`specs/changes/<id>/` と `specs/releases/<tag>/<id>/` の両方が残り、proposal.md に衝突の印（`<<<<<<<`）が入った | 実装 PR のブランチを仕様 PR のブランチの上に積んでいて、仕様 PR のコミットが承認日の追記で作り直された。載せ直さずにマージコミットで合わせたため、作り直す前と後の仕様コミットが両方入った | 仕様 PR のマージ後に、実装 PR のブランチを `git rebase --onto` で新しい main に載せ直してから ff マージする（3.1）。残ったものは片付けの実装 PR で消す（houki-abbreviations の `pr-scope` は、releases にある差分の changes の残りを消すことを許す） |
+| AGENTS.md や `pr-scope` のエラー文の見本「YYYY-MM-DD（PR #N）」が、実際の日付と番号に置き換わった | 取り込みで各 spec.md に入れた「YYYY-MM-DD（PR #N）」を、リポジトリ全体の一括置換で埋めた | 置き換えは `specs/current/` に限る。取り込みの時点で Publisher が日付と番号を書く（実装 PR を開く前に仕様 PR の番号は分かっている） |
+| 1 つの未決の項目に、テストを足せばよい部分と判断が要る部分が混ざっていた（`limit` の既定値と `NaN` の扱い） | 初版起こしで、同じ引数についての観察を 1 項目にまとめた | 未決を振り分けるときに 2 項目に分け、判断が要る方だけを Issue にする |
 
 ## 8. 実行する環境ごとの違い
 
