@@ -9,6 +9,8 @@ export {
   parseId,
   TEST_NAME_RE,
 } from './format.mjs';
+export { readFrontMatter } from './frontmatter.mjs';
+export { formatHistory, history, historyAll } from './history.mjs';
 export { init } from './init.mjs';
 export { dirNameOfTarget, nextIds } from './next.mjs';
 export {

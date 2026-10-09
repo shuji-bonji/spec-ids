@@ -15,9 +15,13 @@
  *   4. specs/current/<dir>/spec.md の見出しの ID の領域・機能が、設定の領域と
  *      そのディレクトリ名から導いた機能に一致しない（別の機能の数列を伸ばしている）
  *
+ * 0.3.0 から、承認の記録（front matter）の検査 5〜7 も行う（src/approval.mjs）。
+ *   5. front matter の形  6. targets の漏れ  7. 古い「- 承認日:」の行の残り
+ *
  * テストは実行しない。番号の欠番も見ない。
  */
 import { readFileSync } from 'node:fs';
+import { checkApproval } from './approval.mjs';
 import { HEADING_RE, ID_RE, parseId, TEST_NAME_RE } from './format.mjs';
 import {
   changesSpecFiles,
@@ -37,7 +41,7 @@ function duplicatesIn(headings, box) {
 }
 
 /**
- * @returns {{ ok: boolean, counts: object, duplicated: Array, missingTests: Array, missingSpecs: Array, misplaced: Array }}
+ * @returns {{ ok: boolean, counts: object, duplicated: Array, missingTests: Array, missingSpecs: Array, misplaced: Array, frontMatter: Array, missingTargets: Array, legacyLines: Array }}
  */
 export function check(root, config) {
   const current = currentSpecFiles(root);
@@ -82,12 +86,17 @@ export function check(root, config) {
     }
   }
 
+  const approval = checkApproval(root, config);
+
   return {
     ok:
       duplicated.length === 0 &&
       missingTests.length === 0 &&
       missingSpecs.length === 0 &&
-      misplaced.length === 0,
+      misplaced.length === 0 &&
+      approval.frontMatter.length === 0 &&
+      approval.missingTargets.length === 0 &&
+      approval.legacyLines.length === 0,
     counts: {
       currentFiles: current.length,
       currentHeadings: currentHeadings.size,
@@ -95,11 +104,16 @@ export function check(root, config) {
       changesHeadings: changesHeadings.size,
       testFiles: tests.length,
       testIds: testIds.size,
+      changesProposals: approval.counts.changesProposals,
+      releasesProposals: approval.counts.releasesProposals,
     },
     duplicated,
     missingTests,
     missingSpecs,
     misplaced,
+    frontMatter: approval.frontMatter,
+    missingTargets: approval.missingTargets,
+    legacyLines: approval.legacyLines,
   };
 }
 
@@ -108,6 +122,7 @@ export function formatReport(result) {
   const { counts } = result;
   const out = [
     `current: ${counts.currentFiles} files, ${counts.currentHeadings} IDs / changes: ${counts.changesFiles} files, ${counts.changesHeadings} IDs`,
+    `proposals: changes ${counts.changesProposals}, releases ${counts.releasesProposals}`,
     `tests: ${counts.testFiles} files, ${counts.testIds} IDs`,
   ];
   const err = [];
@@ -129,6 +144,27 @@ export function formatReport(result) {
   if (result.missingSpecs.length > 0) {
     err.push('', 'テストにあって specs/current にも specs/changes にも見出しが無い ID:');
     for (const m of result.missingSpecs) err.push(`  ${m.id}  (${m.files.join(', ')})`);
+  }
+  if (result.frontMatter.length > 0) {
+    err.push('', 'front matter が無い、または形が違う:');
+    for (const f of result.frontMatter) err.push(`  ${f.file}: ${f.message}`);
+  }
+  if (result.missingTargets.length > 0) {
+    err.push('', 'targets の漏れ:');
+    for (const m of result.missingTargets) {
+      if (m.kind === 'unlisted') {
+        const spec = m.file.replace(/proposal\.md$/, `specs/${m.dir}/spec.md`);
+        err.push(`  ${m.file}: ${spec} があるのに、targets に ${m.dir} がありません`);
+      } else {
+        err.push(
+          `  ${m.file}: targets の ${m.dir} が、specs/current/ にも差分の specs/ にもありません`
+        );
+      }
+    }
+  }
+  if (result.legacyLines.length > 0) {
+    err.push('', '古い「- 承認日:」の行が残っている:');
+    for (const l of result.legacyLines) err.push(`  ${l.file}:${l.line}`);
   }
   if (result.ok) out.push('OK: 仕様 ID とテストが一致しています');
   return { out, err };

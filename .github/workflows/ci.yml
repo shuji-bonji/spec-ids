@@ -30,15 +30,16 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
       - run: npm test
-      # CLI を実際に動かす（init → check）
-      - name: smoke test (init, check)
+      # CLI を実際に動かす（init → check → next → history）
+      - name: smoke test (init, check, next, history)
         run: |
           set -eu
           tmp=$(mktemp -d)
           cd "$tmp"
           node "$GITHUB_WORKSPACE/bin/spec-ids.mjs" init --domain DEMO
           mkdir -p specs/current/get_thing src
-          printf '### SPEC-DEMO-GET-THING-001 x\n' > specs/current/get_thing/spec.md
+          printf -- '---\nspec_id: DEMO\napproved: 2026-10-09\npr: 1\n---\n### SPEC-DEMO-GET-THING-001 x\n' > specs/current/get_thing/spec.md
           printf "it('SPEC-DEMO-GET-THING-001 x', () => {});\n" > src/a.test.ts
           node "$GITHUB_WORKSPACE/bin/spec-ids.mjs" check
           test "$(node "$GITHUB_WORKSPACE/bin/spec-ids.mjs" next get_thing)" = "SPEC-DEMO-GET-THING-002"
+          node "$GITHUB_WORKSPACE/bin/spec-ids.mjs" history get_thing | grep -qF '| 2026-10-09 | （初版） | #1 | - |'
