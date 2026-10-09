@@ -222,7 +222,11 @@ targets: [common_errors, get_law_range, get_toc, search_fulltext]
 - `## REMOVED` の `### SPEC-…`: current から消す。テストの ID を外すのは取り込みと同じコミット
 - `## 入力` `## できないこと` `## 未決` など ID の無い節: current の同じ見出しの節を丸ごと置き換える
 
-ID の無い節の直しは、差分の `spec.md` に節として書かずに、proposal.md の「取り込みのとき（Publisher）」に文章で書いた差分もあります（2026-10-09 JST の時点で、取り込み済みの差分のうち houki-nta-mcp の 9 件と houki-egov-mcp の 2 件）。どちらの書き方でも、直す機能は proposal.md の front matter の `targets` に入れます。`spec-ids check` の検査 6 は、`targets` にあるのに差分の `specs/<dir>/` が無い機能を止めないので、どちらの書き方も通ります。どちらの書き方に寄せるかは決まっていません（10 章）。
+ID の無い節（`## 入力`・`## できないこと`・`## 未決`・`## 処理の流れ` など）の直しも、差分の `spec.md` に節として書きます。こうすると、取り込みは見出しの単位で置き換えるだけで済み、後で取り込みを機械で行うとき（`spec-ids apply` などを作るとき）にも同じ形で扱えます。proposal.md の「取り込みのとき（Publisher）」に文章で書く形は、Publisher の解釈が要るため、これからの差分では使いません（2026-10-09 JST に決定。spec-ids PR #10 の D1 の案 A）。proposal.md の front matter の `targets` には、差分の `spec.md` を置いた機能をすべて入れます。ID の無い節だけを直す機能も、差分の `specs/<dir>/spec.md` を置くので `targets` に入ります。
+
+- 実例: houki-nta-mcp の仕様 PR #160（差分 `20261009-db-folder-access-and-tsutatsu-guide`）は、`db_schema` の `## 処理の流れ` と `nta_get_tsutatsu` の `## できないこと` を差分の `spec.md` に節として書いています
+
+取り込み済みの差分のうち houki-nta-mcp の 9 件と houki-egov-mcp の 2 件は、文章で書いた形のまま残しており、書き直しません。`spec-ids check` の検査 6 は、`targets` にあるのに差分の `specs/<dir>/` が無い機能を止めないので、この 11 件も含めてどちらの形も通ります。
 
 人が差分を読むときは、取り込みの前後を `git diff --no-index --word-diff` で並べると、見慣れた diff の形で確かめられます。
 
@@ -237,6 +241,7 @@ ID の無い節の直しは、差分の `spec.md` に節として書かずに、
 ブランチ: spec/<yyyymmdd>-<slug>（main から切る）
 読むもの: Issue #N、specs/current/<dir>/spec.md、AGENTS.md
 書くもの: specs/changes/<yyyymmdd>-<slug>/proposal.md（先頭の front matter に implementation: required / none と targets を書き、approved: と pr: は空のキーで置く。本文に変わる振る舞い / 変わらない振る舞い / 対象外 / 人が判断すること）と specs/<dir>/spec.md（見出し単位の差分）
+ID の無い節（## 入力・## できないこと・## 未決・## 処理の流れ など）の直しも specs/<dir>/spec.md に節として書き、proposal.md に文章で書かない。
 targets には、ID の無い節だけを直す機能と、差分で新しく作る機能も入れる。本文に「- 承認日:」の行は書かない。
 ID は npx spec-ids next <dir> --count N で取る。コミットは 1 つ。
 ```
@@ -269,6 +274,7 @@ ID は npx spec-ids next <dir> --count N で取る。コミットは 1 つ。
 ブランチ: <実装用ブランチ>
 差分: specs/changes/<id>/
 やること: 見出し単位で current に取り込む（current の spec.md に承認は書き足さない。差分で新しく作る機能は front matter に introduced_by: <id> を書く）、git mv で specs/releases/<次のタグ>/ へ移す、proposal.md の「状態」を取り込み済みにする、spec-ids check と pr-scope が通ること、npx spec-ids history <dir> にこの差分が次のタグで出ることを確かめる。
+差分の spec.md の ID の無い節（## 入力・## できないこと・## 未決・## 処理の流れ など）は、current の同じ見出しの節と置き換える。
 コミットは「spec: <id> を specs/current/ に取り込み、releases/<tag>/ へ移す」の 1 つ。
 ```
 
@@ -339,7 +345,6 @@ houki-nta-mcp で差分 2 件（`20260924-tsutatsu-clause-forms`、`20260925-tsu
 |---|---|
 | 取り込みの自動化（`spec-ids apply`） | 5 章の書式で houki-nta-mcp の差分 2 件を手で取り込んだ。0.3.0 には入れていない。入れる版は決まっていない |
 | `pr-scope` の置き場 | 今は houki-egov-mcp・houki-nta-mcp・houki-abbreviations のコピー。中身は少しずつ違う（テスト名に ID を足すだけかの判定、`.gitkeep` の除外、取り込み済み差分の `specs/changes/` の残りを消すことの許可、変換の例外、テストの件数。houki-abbreviations PR #38 の表）。spec-ids #5 の後の版で、spec-ids のサブコマンド `spec-ids pr-scope` として取り込む（設計の Q20）。houki-nta-mcp のコピーにある、変換のための例外（`specs/changes/` の proposal.md の front matter への書き換えを通すもの。houki-hub の計画書の Q23'）は、このときに外す |
-| ID の無い節の直しの書き方（5 章） | 差分の spec.md に節として書く形と、proposal.md の「取り込みのとき」に文章で書く形の両方がある。`targets` はどちらも受け付ける。どちらに寄せるかは未定 |
 | `spec-ids migrate` | houki 系 3 リポジトリの変換は 2026-10-09 JST に済んだ（houki-egov-mcp PR #117、houki-nta-mcp PR #159、houki-abbreviations PR #38）。0.4.0 で外す予定 |
 | spec-ids 自身の `specs/` | spec-ids #5 の後に、最初から front matter の形で初版起こしする（houki-hub の計画書の Q21 の案 A'）。`spec-gate` は 1 つ前に publish した版の `check` で回す |
 | Auditor | 今は人の目と CI だけ。ID ごとの一致を CI の結果から PR に出す形を検討する |
