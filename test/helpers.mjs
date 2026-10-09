@@ -1,6 +1,37 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname, join, relative } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const BIN = fileURLToPath(new URL('../bin/spec-ids.mjs', import.meta.url));
+
+/** CLI を root で動かす。戻り値は { status, stdout, stderr } */
+export function run(root, args) {
+  const r = spawnSync(process.execPath, [BIN, ...args], { cwd: root, encoding: 'utf8' });
+  return { status: r.status, stdout: r.stdout, stderr: r.stderr };
+}
+
+/** root の下の全ファイルを { 相対パス: 本文 } にする（ファイルを書き換えていないことの確かめに使う） */
+export function snapshot(root) {
+  const out = {};
+  const walk = (dir) => {
+    for (const name of readdirSync(dir).sort()) {
+      const p = join(dir, name);
+      if (statSync(p).isDirectory()) walk(p);
+      else out[relative(root, p)] = readFileSync(p, 'utf8');
+    }
+  };
+  walk(root);
+  return out;
+}
 
 /** 一時ディレクトリに { 相対パス: 本文 } を書いて root を返す */
 export function fixture(files) {
@@ -13,13 +44,30 @@ export function fixture(files) {
   return root;
 }
 
+/**
+ * front matter の文字列を組み立てる。値が null なら「キー:」だけ、配列なら `[a, b]` で書き、
+ * undefined のキーは書かない。
+ * 例: fm({ approved: '2026-10-01', pr: 89 }) → '---\napproved: 2026-10-01\npr: 89\n---\n'
+ */
+export function fm(entries) {
+  const lines = Object.entries(entries)
+    .filter(([, v]) => v !== undefined)
+    .map(([k, v]) => {
+      if (v === null) return `${k}:`;
+      if (Array.isArray(v)) return `${k}: [${v.join(', ')}]`;
+      return `${k}: ${v}`;
+    });
+  return `---\n${lines.join('\n')}\n---\n`;
+}
+
 export const CONFIG = {
   domain: 'NTA',
   dirPrefix: 'nta_',
   tests: ['src/**/*.test.ts', 'tests/**/*.test.ts'],
 };
 
-export const SPEC_OK = `# 機能: nta_get_tsutatsu
+/** 0.3.0 から current の spec.md には front matter が要る（検査 5） */
+export const SPEC_OK = `${fm({ spec_id: 'NTA', approved: '2026-09-22', pr: 49 })}# 機能: nta_get_tsutatsu
 
 ## できること
 

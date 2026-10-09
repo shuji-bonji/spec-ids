@@ -17,6 +17,8 @@ test('仕様とテストが一致していれば ok', () => {
     changesHeadings: 0,
     testFiles: 1,
     testIds: 2,
+    changesProposals: 0,
+    releasesProposals: 0,
   });
   assert.match(formatReport(r).out.at(-1), /^OK/);
 });
@@ -181,7 +183,10 @@ test('仕様の ID は見出しだけを数える（本文の参照だけの ID 
 
 test('tests の glob は設定で変えられる（Jasmine の *.spec.ts など）', () => {
   const root = fixture({
-    'specs/current/get_law/spec.md': SPEC_OK.replaceAll('NTA-GET-TSUTATSU', 'EGOV-GET-LAW'),
+    'specs/current/get_law/spec.md': SPEC_OK.replaceAll('NTA-GET-TSUTATSU', 'EGOV-GET-LAW').replace(
+      'spec_id: NTA',
+      'spec_id: EGOV'
+    ),
     'src/app/a.spec.ts': TEST_OK.replaceAll('NTA-GET-TSUTATSU', 'EGOV-GET-LAW'),
     'src/app/b.test.ts': `it('SPEC-EGOV-GET-LAW-050 not scanned', () => {});`,
   });
