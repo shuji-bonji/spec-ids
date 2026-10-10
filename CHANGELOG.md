@@ -1,5 +1,40 @@
 # Changelog
 
+## 0.4.0 — 2026-10-10
+
+houki-egov-mcp・houki-nta-mcp・houki-abbreviations にコピーで置いていた `.github/scripts/check-pr-scope.mjs` を、サブコマンド `spec-ids pr-scope` として取り込んだ（#9）。あわせて、0.3.0 だけに置いた `spec-ids migrate` を外した。
+
+### 互換性
+
+- `spec-ids migrate` を外した（互換性の無い変更）。0.2.0 までの形（本文の「- 承認日:」の行）のまま 0.3.0 で変換を終えていないリポジトリは、`npx @shuji-bonji/spec-ids@0.3.0 migrate --write` で変換してから 0.4.0 に上げる。0.4.0 で `spec-ids migrate` を実行すると、使い方を表示して exit 2 で終わる
+- `spec-ids init` が作る `.github/workflows/spec-gate.yml` に `pr-scope` のジョブが増えた。既に `spec-gate.yml` があるリポジトリでは、`init` は今までどおり書き換えない
+- `check`・`next`・`history` の動きと出力は変えていない
+
+### 足したもの
+
+- `spec-ids pr-scope [--base <ref>] [--branch <name>]`（`src/pr-scope.mjs`）: ブランチ名の接頭辞で PR の種類（`spec/*` 仕様 PR・`spec-init/*` 初版起こし・それ以外は実装 PR）を決め、変えてよいパスの外の変更と、front matter の承認の空欄があれば exit 1 で終わる
+  - 基準のコミットは `--base` → 環境変数 `BASE_REF` → `origin/main`、ブランチ名は `--branch` → 環境変数 `HEAD_REF` → 今のブランチの順で決める（3 つのコピーの `BASE_REF` / `HEAD_REF` の受け取り方をそのまま使える）
+  - 設定 `specs/spec-ids.json` が無い・知らないオプション・git の失敗（基準のコミットが無いなど）は exit 2
+  - 出力は `check` と同じく、1 行目（ブランチ・種類・基準・変更の数）と `OK:` の行を標準出力に、違反を標準エラーに出す
+- 3 つのコピーの違いは、#9 の決定のとおりにそろえた
+  - テスト名に ID を足すだけの変更の判定: 足した後に前の ID がすべて残り、数が増えていれば通す（すでに ID の付いたテスト名に別の ID を足すのも通す）。ID を消す・差し替える変更は止める（houki-egov-mcp・houki-nta-mcp の形）
+  - `specs/{current,changes,releases}/.gitkeep` は、どの種類の PR でも検査しない
+  - 実装 PR で、取り込み済み（`specs/releases/<tag>/<id>/` がある）差分の `specs/changes/<id>/` の残りを消すことを許す
+  - houki-nta-mcp のコピーにあった、`specs/changes/` の proposal.md を front matter に書き換えることを通す例外（houki-hub の計画書の Q23'）は入れていない
+- テストファイルは、設定 `tests` の glob に合うファイルと、名前が `*.test.{js,ts,mjs,cjs,mts,cts}` のファイル（3 つのコピーの判定）の両方とした。Jasmine の `*.spec.ts` などを `tests` に書いたリポジトリでも、初版起こしの検査が働く
+- ブランチ名の接頭辞（`spec/`・`spec-init/`）は固定で、設定には出していない
+- `init` が作る `spec-gate.yml` に `pr-scope` のジョブ（`pull_request` のときだけ、`fetch-depth: 0`、`npm ci` の後に `npx spec-ids pr-scope`）を足した
+- Node の API に `prScope`・`checkScope`・`formatScopeReport`・`kindOf`・`parseNameStatus`・`onlyIdsAdded`・`releasedIds`・`DEFAULT_BASE` を足した
+- 3 つのコピーのテスト（20・22・24 件）を `test/pr-scope.test.mjs` にまとめた
+
+### 外したもの
+
+- `spec-ids migrate`（`src/migrate.mjs`・`test/migrate.test.mjs`・README の節）
+
+### 利用側で行うこと
+
+- houki-egov-mcp・houki-nta-mcp・houki-abbreviations は、`.github/scripts/check-pr-scope.mjs` と `check-pr-scope.test.mjs` を消し、`ci.yml` の `pr-scope` のジョブの 2 つの `run`（テストとスクリプトの実行）を `npx spec-ids pr-scope` の 1 つにし、依存を `^0.4.0` に上げる（0.x の `^` は minor を跨がないので、上げないと 0.4.0 は入らない）
+
 ## 0.3.0 — 2026-10-09
 
 承認の記録を、差分の `proposal.md` と current の `spec.md` の先頭の front matter に 1 か所だけ書く形にした（#5）。差分を取り込むたびに current の `spec.md` の「- 承認日:」の行へ承認を書き足す必要は無くなり、機能ごとの履歴は `spec-ids history` が集めて表示する。設計は `docs/proposals/20261009-approval-front-matter.md`（PR #6）。

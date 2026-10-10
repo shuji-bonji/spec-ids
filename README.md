@@ -1,6 +1,6 @@
 # spec-ids
 
-仕様書の見出しに付けた仕様 ID と、テスト名に付けた仕様 ID を突き合わせて、食い違いがあれば CI で PR を止めるための CLI です。仕様 ID の採番と、仕様の置き場（`specs/`）の初期化も行います。0.3.0 からは、仕様と差分の承認の記録（ファイルの先頭の front matter）を検査し、機能ごとの承認の履歴を表にして表示します。
+仕様書の見出しに付けた仕様 ID と、テスト名に付けた仕様 ID を突き合わせて、食い違いがあれば CI で PR を止めるための CLI です。仕様 ID の採番と、仕様の置き場（`specs/`）の初期化も行います。0.3.0 からは、仕様と差分の承認の記録（ファイルの先頭の front matter）を検査し、機能ごとの承認の履歴を表にして表示します。0.4.0 からは、PR の種類（ブランチ名の接頭辞）ごとに変えてよいパスを CI で検査します（`spec-ids pr-scope`）。
 
 ## 目的と立ち位置
 
@@ -13,7 +13,7 @@
 - 仕様 1 件ごとに ID を振り、受入テストの名前に同じ ID を書く
 - 仕様側の ID の集合とテスト側の ID の集合を CI で比べ、差があれば PR を止める
 
-このパッケージが担うのは最後の 1 つと、それに必要な採番、そして承認の記録が決まった形で書かれているかの検査です。
+このパッケージが担うのは最後の 1 つと、それに必要な採番、承認の記録が決まった形で書かれているかの検査、そして仕様 PR と実装 PR がそれぞれ変えてよい範囲に収まっているかの検査です。
 
 ```mermaid
 flowchart LR
@@ -31,6 +31,7 @@ flowchart LR
     next["next: 採番"]
     check["check: 仕様の ID とテストの ID の突合<br/>承認の記録（front matter）の検査"]
     history["history: 機能ごとの承認の履歴"]
+    scope["pr-scope: PR の種類ごとの変更範囲<br/>承認の空欄"]
     ci["CI で差があれば exit 1"]
   end
   current --> check
@@ -43,6 +44,8 @@ flowchart LR
   id --> next
   id --> check
   check --> ci
+  pr["PR のブランチ名と git diff"] --> scope
+  scope --> ci
 ```
 
 運用の手順そのもの（誰が何を書いてよいか、承認の流れ、Steward / Auditor の指示文）はこのパッケージには入っていません。
@@ -56,6 +59,7 @@ flowchart LR
 | `###` の見出しの先頭が ID である、という仕様書の書き方                   | このパッケージ                 | 変えられない                                               |
 | 承認の記録を書く front matter のキーと値の形                             | このパッケージ                 | 変えられない                                               |
 | `describe` / `it` / `test` の第 1 引数に ID を書く、というテストの書き方 | このパッケージ                 | 変えられない                                               |
+| PR の種類を決めるブランチ名の接頭辞（`spec/`・`spec-init/`）             | このパッケージ                 | 変えられない                                               |
 | 領域（`NTA` など）                                                       | 利用側の `specs/spec-ids.json` | 設定 `domain`                                              |
 | ディレクトリ名から除く接頭辞（`nta_` など）                              | 利用側の `specs/spec-ids.json` | 設定 `dirPrefix`                                           |
 | テストファイルの場所と拡張子                                             | 利用側の `specs/spec-ids.json` | 設定 `tests`                                               |
@@ -193,7 +197,7 @@ npx spec-ids init --domain NTA --dir-prefix nta_
 | --------------------------------------------------------------------------- | ------------------------------------------------------- |
 | `specs/current/.gitkeep` `specs/changes/.gitkeep` `specs/releases/.gitkeep` | 置き場                                                  |
 | `specs/spec-ids.json`                                                       | 設定                                                    |
-| `.github/workflows/spec-gate.yml`                                           | PR と main への push で `npx spec-ids check` を走らせる |
+| `.github/workflows/spec-gate.yml`                                           | PR と main への push で `npx spec-ids check` を、PR のときだけ `npx spec-ids pr-scope` を走らせる |
 
 あわせて、`AGENTS.md`（または `CONTRIBUTING.md`）に貼る節を標準出力に表示します。ファイルには書き込みません。
 
@@ -322,26 +326,81 @@ get_toc（SPEC-EGOV-GET-TOC）
 - `--json` は同じ内容を JSON で、`--all` はすべての機能を表示します
 - 機能が `specs/current/` に無いときは exit 2 で終わります
 
-### 古い形からの変換 `spec-ids migrate`（0.3.0 だけ）
-
-0.2.0 までの、本文の「- 承認日:」「- 機能 ID:」「- 種類:」「- 実装の変更:」の行で承認を記録していたリポジトリを、front matter の形に一度だけ変換するためのサブコマンドです。0.4.0 で外します。
+### PR の種類ごとの検査 `spec-ids pr-scope`
 
 ```bash
-npx spec-ids migrate          # 書き換えずに、変換の計画と食い違いを表示する
-npx spec-ids migrate --json   # 古い形から読んだ承認を JSON で表示する（変換の前後の比較に使う）
-npx spec-ids migrate --write  # 食い違いが無いときだけ書き換える
+npx spec-ids pr-scope
+npx spec-ids pr-scope --base origin/main --branch spec/20261010-x
 ```
 
-| 書くもの                                     | 読む元                                                                                  | 食い違いとして止める場合                         |
-| -------------------------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| `proposal.md` の `approved`・`pr`            | `proposal.md` の「- 承認日:」。無ければ current の行の「差分 `<id>` は …」              | 両方にあって値が違う。どちらにも無い             |
-| `proposal.md` の `implementation`            | 「- 実装の変更: 要」→ `required`、「不要」→ `none`。括弧書きは「- 実装の変更の補足:」へ | 行が無い                                         |
-| `proposal.md` の `targets`                   | current の行にその差分が書かれている `<dir>` と、差分の `specs/<dir>/` の和             | 和が空                                           |
-| current の `spec_id`                         | 「- 機能 ID:」                                                                          | 行が無い、または設定の `domain` と違う           |
-| current の `kind`                            | 「- 種類:」（`ツール`→`tool`、`CLI`→`cli`、`DB`→`db`、`共通`→`common`）                 | 4 つ以外の値（行が無いときは `kind` を書かない） |
-| current の `approved`・`pr`・`introduced_by` | 「- 承認日:」の初版の部分                                                               | 決まった 5 通りの書き方のどれにも合わない        |
+仕様を「仕様 PR」と「実装 PR」の 2 本で変える運用（`docs/operations.md`）で、PR が変えてよいパスの外に触れていないかと、承認の記録の空欄を調べます。PR の種類は、ブランチ名の接頭辞で決まります。接頭辞は固定で、設定では変えられません。
 
-このほか、「- 承認日:」の行に読めない文が残っているとき、current の行に書かれている差分の `proposal.md` が無いとき、current の行どうしで同じ差分の承認の値が違うときも、食い違いとして止めます。どれも、そのまま変換すると記録が消えるためです。食い違いが 1 件でもあれば exit 1 で終わり、`--write` は何も書き換えません。front matter が既にあるファイルは、変換済みとして書き換えません。
+| ブランチ | 種類 | 変えてよいもの |
+| --- | --- | --- |
+| `spec/*` | 仕様 PR | `specs/changes/` だけ。差分の `proposal.md` の front matter が `implementation: none` なら `specs/current/` も |
+| `spec-init/*` | 初版起こし | `specs/current/<dir>/spec.md` の追加・書き換えと、テスト名に仕様 ID を足すだけの変更 |
+| それ以外（`feat/`・`fix/`・`docs/` など） | 実装 PR | `specs/changes/` は、`specs/releases/` への移動と、取り込み済みの差分の残りを消すことだけ。ほかのパスは自由 |
+
+次のどれかがあれば exit 1 で終わります。
+
+- 上の表の外の変更
+- 仕様 PR に `specs/changes/<id>/proposal.md` が無い、またはその front matter の `approved` か `pr` が空
+- 変わった `specs/current/<dir>/spec.md`（どの種類の PR でも）の front matter に、`approved` と `pr`、または `introduced_by` が無い
+
+細かい決まりは次のとおりです。
+
+- 初版起こしで「テスト名に仕様 ID を足すだけ」とみなすのは、変わった行を消えた行と足された行の順に対にし、どの対も「ID を除くと同じ行」「前の ID がすべて残っている」「ID の数が増えている」を満たす変更です。すでに ID の付いたテスト名に別の ID を足すのは通し、ID を消す・差し替えるのは止めます
+- テストファイルは、設定 `tests` の glob に合うファイルと、名前が `*.test.{js,ts,mjs,cjs,mts,cts}` のファイルです
+- 「取り込み済みの差分」は、`specs/releases/<tag>/` の下に同じ `<id>` のフォルダーがある差分です。ブランチを積んで取り込んだときに `specs/changes/<id>/` に残ったファイルを消す PR を通すためです（`docs/operations.md` の 7 章）
+- `specs/current/.gitkeep`・`specs/changes/.gitkeep`・`specs/releases/.gitkeep` は、どの種類の PR で足しても消しても止めません
+- front matter の書式そのもの（キーの打ち間違い、値の形、古い「- 承認日:」の行）は見ません。それは `spec-ids check` が見ます
+
+入力は次の順で決めます。
+
+| 入力 | 決め方 |
+| --- | --- |
+| 比べる基準のコミット | `--base`、無ければ環境変数 `BASE_REF`、無ければ `origin/main` |
+| PR のブランチ名 | `--branch`、無ければ環境変数 `HEAD_REF`、無ければ今のブランチ（`git rev-parse --abbrev-ref HEAD`） |
+| 変わったファイル | `git diff --name-status -M <基準>...HEAD`（基準との merge-base からの変更） |
+| ファイルの中身・`specs/releases/` | 作業ツリー |
+
+空の文字列の環境変数は、無いものとして扱います。GitHub Actions の `pull_request` では `HEAD` がマージ用のコミットになり、今のブランチ名を取れないので、`init` が作る `spec-gate.yml` は `HEAD_REF: ${{ github.head_ref }}` と `BASE_REF: origin/${{ github.base_ref }}` を渡します。merge-base を求めるので、`actions/checkout` には `fetch-depth: 0` が要ります。
+
+範囲に収まっているときの出力です。
+
+```
+branch: spec/20261010-x（spec）、base: origin/main、変更 2 ファイル
+OK: この種類の PR が変えてよい範囲に収まっています
+```
+
+収まっていないときは、1 行目を標準出力に、違反を標準エラーに出します。
+
+```
+この種類の PR が変えてよい範囲の外の変更、または承認の空欄:
+  仕様 PR（spec/*）は specs/changes/ だけを変えます: src/lookup.ts
+  承認日と PR 番号がありません（マージの前に front matter の approved と pr を書く）: specs/changes/20261010-x/proposal.md
+```
+
+### 終了コード
+
+| コマンド | 0 | 1 | 2 |
+| --- | --- | --- | --- |
+| `check` | 食い違いが無い | 食い違いがある | `specs/spec-ids.json` が無い |
+| `pr-scope` | 範囲に収まっている | 範囲の外の変更か、承認の空欄がある | `specs/spec-ids.json` が無い、知らないオプション・値の無いオプション、git が失敗した（基準のコミットが無い、git のリポジトリでない） |
+| `next` | ID を表示した | - | `specs/spec-ids.json` が無い、引数が足りない・`--count` が正の整数でない |
+| `history` | 履歴を表示した | - | `specs/spec-ids.json` が無い、引数の組み合わせが違う、機能が `specs/current/` に無い |
+| `init` | 作った（既存のファイルは変更しない） | - | `--domain` が無い |
+
+知らないサブコマンドは、使い方を表示して exit 2 で終わります。どのコマンドも、設定の形が違う（`domain` が英大文字でない など）ときは、理由を標準エラーに出して exit 1 で終わります。`check` と `pr-scope` は、数えた結果と `OK:` の行を標準出力に、食い違いを標準エラーに出します。
+
+### 0.2.0 までの形から上げるとき
+
+0.2.0 までの、本文の「- 承認日:」の行で承認を記録していたリポジトリは、0.3.0 の `migrate` で front matter の形に変換してから 0.4.0 に上げてください。`migrate` は 0.4.0 で外しました。
+
+```bash
+npx @shuji-bonji/spec-ids@0.3.0 migrate          # 変換の計画と食い違いを表示する
+npx @shuji-bonji/spec-ids@0.3.0 migrate --write  # 食い違いが無いときだけ書き換える
+```
 
 ## しないこと
 
@@ -350,7 +409,7 @@ npx spec-ids migrate --write  # 食い違いが無いときだけ書き換える
 - 仕様の本文を見ない（数えるのは `###` の見出しの ID だけ。`ADDED` / `MODIFIED` / `REMOVED` の意味、本文の参照は見ない）。承認の記録は front matter と「- 承認日:」の行だけを見る
 - `specs/releases/` の `spec.md` の見出しの ID を数えない（`proposal.md` の front matter と、差分の `specs/<dir>/` の構成だけを見る）
 - `proposal.md` の「- 対象:」などの本文と、front matter の `targets` を突き合わせない
-- 承認フローや役割を管理しない
+- 承認フローや役割を管理しない（`pr-scope` が見るのは、ブランチ名の接頭辞・変わったパス・テストの行の差分・front matter の承認の空欄だけ）
 - `specs/current/` へ差分を取り込まない、`specs/releases/` へコピーしない
 
 ## Node の API
@@ -358,7 +417,15 @@ npx spec-ids migrate --write  # 食い違いが無いときだけ書き換える
 CLI と同じことをプログラムから呼べます。
 
 ```js
-import { check, findRoot, history, loadConfig, nextIds, readFrontMatter } from '@shuji-bonji/spec-ids';
+import {
+  check,
+  findRoot,
+  history,
+  loadConfig,
+  nextIds,
+  prScope,
+  readFrontMatter,
+} from '@shuji-bonji/spec-ids';
 
 const root = findRoot();
 const config = loadConfig(root);
@@ -368,12 +435,15 @@ const ids = nextIds(root, config, 'nta_get_tsutatsu', 2);
 const h = history(root, config, 'get_toc');
 // { dir, specId, rows: [{ kind, approved, change, pr, version }] }
 
+const scope = prScope(root, config, { base: 'origin/main', branch: 'spec/20261010-x' });
+// { base, branch, kind, changes: [{ status, path, from? }], errors: string[] }
+
 const fm = readFrontMatter(text);
 // 1 行目が --- でなければ null。そうでなければ { data, errors, lines }
 // data の値は、空なら null、正の整数なら number、配列なら string[]、それ以外は string
 ```
 
-`readFrontMatter` は、利用側のスクリプト（`check-pr-scope.mjs` など）で front matter の `approved`・`pr`・`implementation` を読むために使えます。`historyAll(root, config)` はすべての機能の履歴を、`formatHistory(h)` は表示用の行を返します。
+`readFrontMatter` は、利用側のスクリプトで front matter を読むために使えます。`historyAll(root, config)` はすべての機能の履歴を、`formatHistory(h)` は表示用の行を返します。`checkScope({ kind, changes, read, diffOf, released })` は、`pr-scope` の判定を git を使わずに呼べる形です（`kindOf(branch)`・`parseNameStatus(text)`・`onlyIdsAdded(diff)`・`releasedIds(root)` と組み合わせます）。
 
 ## 動作環境
 
@@ -383,7 +453,7 @@ Node.js 22 以上。依存パッケージはありません。
 
 | ファイル                        | 役割                                                                                                                                                 |
 | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `bin/spec-ids.mjs`              | CLI。`check` / `next` / `init` / `history` / `migrate` / `--version`                                                                                 |
+| `bin/spec-ids.mjs`              | CLI。`check` / `next` / `init` / `history` / `pr-scope` / `--version`                                                                                |
 | `src/format.mjs`                | ID の形式（正規表現、組み立て、分解、ディレクトリ名から機能を導く）。設定では変えられない                                                            |
 | `src/config.mjs`                | `specs/spec-ids.json` の探索と検証。`domain` は必須、`dirPrefix` は既定 `""`、`tests` は既定 `src/**/*.test.ts` と `tests/**/*.test.ts`              |
 | `src/scan.mjs`                  | `specs/current` / `changes` の走査（構造は固定）、`tests` の glob（`**` `*` `?` のみ、自前）。`node_modules` / `dist` / `coverage` / `.git` は飛ばす |
@@ -392,12 +462,12 @@ Node.js 22 以上。依存パッケージはありません。
 | `src/proposals.mjs`             | `specs/current/<dir>/spec.md` と、`specs/changes` / `specs/releases` の `proposal.md` の走査                                                         |
 | `src/approval.mjs`              | 判定 5〜7（front matter の形、targets の漏れ、古い「- 承認日:」の行）                                                                                |
 | `src/history.mjs`               | 機能ごとの承認の履歴（`history`）                                                                                                                    |
-| `src/migrate.mjs`               | 古い形から front matter への変換（`migrate`）。0.3.0 だけに置き、0.4.0 で外す                                                                        |
+| `src/pr-scope.mjs`              | PR の種類（ブランチ名の接頭辞）ごとの変更範囲と承認の空欄の検査（`pr-scope`）。判定の `checkScope` と、git から入力を集める `prScope` に分けている   |
 | `src/next.mjs`                  | 採番。`spec.md` のパス、`specs/current/<dir>`、`<dir>` のどれでも受ける                                                                              |
-| `src/init.mjs`                  | 置き場・設定・`spec-gate.yml` を作る。既存は変更しない。`AGENTS.md` に貼る節は表示のみ                                                               |
+| `src/init.mjs`                  | 置き場・設定・`spec-gate.yml`（`spec-gate` と `pr-scope` のジョブ）を作る。既存は変更しない。`AGENTS.md` に貼る節は表示のみ                          |
 | `templates/`                    | `init` が使う `spec-gate.yml` と `AGENTS.md` の節                                                                                                    |
-| `test/*.test.mjs`               | `node:test`。一時ディレクトリに fixture を書いて関数を直接呼ぶ                                                                                       |
-| `.github/workflows/ci.yml`      | lint / format:check / test（Node 22, 24）と、`init → check → next → history` を実際に走らせる smoke test                                                       |
+| `test/*.test.mjs`               | `node:test`。一時ディレクトリに fixture を書いて関数を直接呼ぶ。`pr-scope` の CLI のテストは一時ディレクトリに git のリポジトリを作る                |
+| `.github/workflows/ci.yml`      | lint / format:check / test（Node 22, 24）と、`init → check → next → history → pr-scope` を実際に走らせる smoke test                                                       |
 | `.github/workflows/publish.yml` | `v*` タグで npm に publish（OIDC + provenance）。build は無い                                                                                        |
 
 ## 出典

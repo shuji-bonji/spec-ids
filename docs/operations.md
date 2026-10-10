@@ -1,7 +1,7 @@
 # 運用手順: 仕様とコードを 2 本の PR で変える
 
 - 対象: `@shuji-bonji/spec-ids` を使うリポジトリで、仕様の作成・変更と実装を進める人とエージェント
-- 状態: 試行版。houki-nta-mcp で 2026-09-24〜26（JST）に回した記録から起こした。2026-10-09（JST）に spec-ids 0.3.0 の形（承認の記録を front matter に書く。spec-ids #5）に合わせた
+- 状態: 試行版。houki-nta-mcp で 2026-09-24〜26（JST）に回した記録から起こした。2026-10-09（JST）に spec-ids 0.3.0 の形（承認の記録を front matter に書く。spec-ids #5）に、2026-10-10（JST）に spec-ids 0.4.0 の形（`pr-scope` を spec-ids のサブコマンドにした。spec-ids #9）に合わせた
 - 前提の手順: [Discussion #1「仕様を担保するエージェントの導入と実践」](https://github.com/shuji-bonji/spec-ids/discussions/1)（役割と順序）
 
 この文書は、Discussion #1 が決めた役割と順序を、git と GitHub の操作（ブランチ・コミット・PR・承認・マージ・タグ）に対応させた手順書です。仕様をコードと同じリポジトリにある別種の開発資産として扱い、人が振る舞いを承認する場所を仕様 PR 1 か所にします。
@@ -43,6 +43,8 @@ flowchart LR
 | `spec-init/<dir>` | 初版起こし | `specs/current/<dir>/spec.md`（front matter の `approved` と `pr` を含む）、既存テストの名前への仕様 ID の追加 | テストの期待値と本文、実装 | 今の動きを意図として認めるか、不具合か |
 | それ以外（`feat/` `fix/` `docs/` など） | 実装 PR | テスト、`src/`、版と CHANGELOG、最終コミットの取り込み（`specs/current/` の更新と `specs/changes/` → `specs/releases/<tag>/` の移動） | 未承認の意図の追加、承認済み差分の書き換え | 通常のコードレビュー。仕様の再承認ではない |
 
+- ブランチ名の接頭辞 `spec/`・`spec-init/` は、`spec-ids pr-scope`（4 章）が PR の種類を決めるのに使う。接頭辞は spec-ids が固定で持ち、`specs/spec-ids.json` では変えられない。どちらでもないブランチは、すべて実装 PR として検査する
+- 実装 PR は、取り込み済み（`specs/releases/<tag>/` に同じ `<id>` がある）差分の `specs/changes/<id>/` に残ったファイルを消してよい（7 章の片付け）
 - 仕様 PR の proposal.md の front matter に `implementation: none` と書いた差分（出荷済みの振る舞いを書き直すだけのもの）は、仕様 PR の中で `specs/current/` を書いてよい。正が未出荷にならないため
 - 初版起こしは 1 本の PR にする。`spec.md` とテスト名の ID を分けると、どちらを先にマージしても `spec-ids check` が止まる
 
@@ -199,7 +201,7 @@ targets: [common_errors, get_law_range, get_toc, search_fulltext]
 | ジョブ | 何を止めるか | 実装 |
 |---|---|---|
 | `spec-gate` | 仕様 ID とテストの食い違い（検査 1〜4）と、承認の記録の形（検査 5〜7: front matter の形、`targets` の漏れ、古い「- 承認日:」の行） | `npx spec-ids check`（0.3.0 以上） |
-| `pr-scope` | PR の種類ごとに変えてよいパスの外の変更。front matter の承認の空欄（仕様 PR の proposal.md の `approved` と `pr`、変わった current の spec.md の `approved` と `pr`、または `introduced_by`）。`implementation: none` でない仕様 PR による `specs/current/` の書き換え | 各リポジトリの `.github/scripts/check-pr-scope.mjs`（今は houki-egov-mcp・houki-nta-mcp・houki-abbreviations のコピー。front matter を spec-ids の `readFrontMatter` で読むので、`pr-scope` のジョブにも `npm ci` が要る） |
+| `pr-scope` | PR の種類ごとに変えてよいパスの外の変更。front matter の承認の空欄（仕様 PR の proposal.md の `approved` と `pr`、変わった current の spec.md の `approved` と `pr`、または `introduced_by`）。`implementation: none` でない仕様 PR による `specs/current/` の書き換え | `npx spec-ids pr-scope`（0.4.0 以上）。PR のときだけ動かし、`actions/checkout` は `fetch-depth: 0`、`npm ci` の後に実行する。基準のコミットとブランチ名は環境変数 `BASE_REF`・`HEAD_REF` で渡す |
 
 `spec-ids check` 0.3.0 の検査は次のとおりです。仕様 PR の後、実装 PR の途中、取り込みの後のどの状態でも通ります。1〜4 は 0.2.0 からの仕様 ID とテストの突き合わせ、5〜7 は 0.3.0 で足した承認の記録の検査です。
 
@@ -212,6 +214,18 @@ targets: [common_errors, get_law_range, get_toc, search_fulltext]
 | 5. front matter の形 | `specs/current/*/spec.md`、`specs/changes/*/proposal.md`、`specs/releases/*/*/proposal.md` |
 | 6. `targets` の漏れ | `specs/changes/<id>/` と `specs/releases/<tag>/<id>/`（差分の `specs/<dir>/spec.md` があるのに `<dir>` が `targets` に無いものを止める） |
 | 7. 古い行の残り | 5 と同じファイル（「- 承認日:」で始まる行を止める） |
+
+`spec-ids pr-scope` が PR の種類ごとに許す変更は次のとおりです（1.2 の表を CI で確かめる形）。細かい決まりは README の「PR の種類ごとの検査」にあります。
+
+| ブランチ | 許す変更 | 止める変更 |
+|---|---|---|
+| `spec/*` | `specs/changes/`。`implementation: none` の差分なら `specs/current/` も | それ以外のパス。proposal.md が無い、または `approved` か `pr` が空 |
+| `spec-init/*` | `specs/current/<dir>/spec.md` の追加・書き換え、テスト名に仕様 ID を足すだけの変更（ID の付いたテスト名に別の ID を足すのを含む） | テストの ID を消す・差し替える変更、期待値や本文の変更、それ以外のパス |
+| それ以外 | `specs/changes/` → `specs/releases/` の移動、取り込み済みの差分の `specs/changes/<id>/` の残りを消すこと、`specs/` の外の変更 | それ以外の `specs/changes/` の変更 |
+
+どの種類でも、変わった `specs/current/<dir>/spec.md` の front matter に `approved` と `pr`（または `introduced_by`）が無ければ止め、`specs/{current,changes,releases}/.gitkeep` の追加と削除は止めません。
+
+`spec-ids init` が作る `.github/workflows/spec-gate.yml` には、`spec-gate` と `pr-scope` の 2 つのジョブが入っています。
 
 ## 5. 差分の書き方
 
@@ -292,7 +306,7 @@ houki-nta-mcp で差分 2 件（`20260924-tsutatsu-clause-forms`、`20260925-tsu
 | 手元で `spec-ids check` が CI と違う結果を出した | 手元の node_modules が古い版のまま | 依存を上げた後は `npm ci` をやり直す |
 | 差分を読みづらい場面があった | 文面の大きな書き換え | 見出し単位の差分にし、`git diff --no-index --word-diff` を併用する |
 | 初版起こしで、仕様に書かれたとおりの動きが不具合だった（一度取得すると同じ通達の他の節が取れない） | 初版は実装から起こすので、不具合も文面に入る | 未決に書き、Issue → 仕様 PR にする。試用（実際の呼び出し）で見つかることが多い |
-| 実装 PR をマージした後の main に、`specs/changes/<id>/` と `specs/releases/<tag>/<id>/` の両方が残り、proposal.md に衝突の印（`<<<<<<<`）が入った | 実装 PR のブランチを仕様 PR のブランチの上に積んでいて、仕様 PR のコミットが承認日の追記で作り直された。載せ直さずにマージコミットで合わせたため、作り直す前と後の仕様コミットが両方入った | 仕様 PR のマージ後に、実装 PR のブランチを `git rebase --onto` で新しい main に載せ直してから ff マージする（3.1）。残ったものは片付けの実装 PR で消す（houki-abbreviations の `pr-scope` は、releases にある差分の changes の残りを消すことを許す） |
+| 実装 PR をマージした後の main に、`specs/changes/<id>/` と `specs/releases/<tag>/<id>/` の両方が残り、proposal.md に衝突の印（`<<<<<<<`）が入った | 実装 PR のブランチを仕様 PR のブランチの上に積んでいて、仕様 PR のコミットが承認日の追記で作り直された。載せ直さずにマージコミットで合わせたため、作り直す前と後の仕様コミットが両方入った | 仕様 PR のマージ後に、実装 PR のブランチを `git rebase --onto` で新しい main に載せ直してから ff マージする（3.1）。残ったものは片付けの実装 PR で消す（`spec-ids pr-scope` は、releases にある差分の changes の残りを消すことを許す） |
 | AGENTS.md や `pr-scope` のエラー文の見本「YYYY-MM-DD（PR #N）」が、実際の日付と番号に置き換わった | 取り込みで各 spec.md に入れた「YYYY-MM-DD（PR #N）」を、リポジトリ全体の一括置換で埋めた | 置き換えは `specs/current/` に限る。取り込みの時点で Publisher が日付と番号を書く（実装 PR を開く前に仕様 PR の番号は分かっている）。spec-ids 0.3.0 からは取り込みで current に承認を書き足さないので、この置き換えをする場面そのものが無い |
 | 1 つの未決の項目に、テストを足せばよい部分と判断が要る部分が混ざっていた（`limit` の既定値と `NaN` の扱い） | 初版起こしで、同じ引数についての観察を 1 項目にまとめた | 未決を振り分けるときに 2 項目に分け、判断が要る方だけを Issue にする |
 | houki-abbreviations の current の 23 本で、初版の PR 番号が #10 から #26 に置き換わり、差分 `20260927-undecided-to-issues`（PR #26）の記録がどの行からも消えていた | コミット `151d255` が差分の承認を書き足すときに、23 本の「- 承認日:」の行の初版の「PR #10」を「PR #26」に書き換えた。上の行と同じ、一括の書き換えによる事故 | 変換の前直し F4 で、初版を PR #10 に戻し、差分を書き足した（houki-abbreviations PR #38）。0.3.0 からは current に承認を書き足す手順そのものが無い |
@@ -333,8 +347,8 @@ houki-nta-mcp で差分 2 件（`20260924-tsutatsu-clause-forms`、`20260925-tsu
 
 1. `npm install --save-dev @shuji-bonji/spec-ids` と `npx spec-ids init --domain <領域> --dir-prefix <接頭辞>` で、依存と `specs/`・`specs/spec-ids.json`・`spec-gate.yml` を作る
 2. AGENTS.md に「仕様の正本」「仕様 ID」「PR の種類」「承認の記録」「役割」の節を置く（houki-nta-mcp の AGENTS.md が見本。「承認の記録」は front matter の書き方）
-3. `pr-scope` を入れる。今は houki 系 3 リポジトリのどれかの `.github/scripts/check-pr-scope.mjs` と、`ci.yml` の `pr-scope` のジョブをコピーする。このスクリプトは `@shuji-bonji/spec-ids` の `readFrontMatter` を import するので、spec-ids を devDependencies に入れ、`pr-scope` のジョブで `npm ci` をしてから実行する。3 つのコピーは中身が少しずつ違う（10 章）。`pr-scope` は spec-ids のサブコマンド（`spec-ids pr-scope`）として取り込む予定
-4. 最初の 1 機能を初版起こし（`spec-init/<dir>`）で入れ、テスト名に ID を付ける。spec.md は最初から front matter の形で書くので、`spec-ids migrate` は要らない
+3. `pr-scope` は、1 の `init` が作る `spec-gate.yml` の `pr-scope` のジョブ（`npx spec-ids pr-scope`）で入る。`spec-gate.yml` を作らず既存の `ci.yml` にまとめるときは、`pull_request` のときだけ動くジョブを作り、`actions/checkout` に `fetch-depth: 0` を付け、`npm ci` の後に `npx spec-ids pr-scope` を、環境変数 `BASE_REF: origin/${{ github.base_ref }}` と `HEAD_REF: ${{ github.head_ref }}` を付けて実行する。ブランチ名は 1.2 の接頭辞（`spec/`・`spec-init/`）にそろえる
+4. 最初の 1 機能を初版起こし（`spec-init/<dir>`）で入れ、テスト名に ID を付ける。spec.md は最初から front matter の形で書く
 5. main のマージ方法を手元の ff マージにそろえる（GitHub の設定で squash と rebase のボタンを外す）
 
 テストの書き方がリポジトリごとに違う点（Vitest の `it`、Jasmine の `describe`、`node:test` の `test`）は、`specs/spec-ids.json` の `tests` の glob で合わせます。`spec-ids check` は `describe` / `it` / `test` の第 1 引数の文字列を読みます。
@@ -344,11 +358,14 @@ houki-nta-mcp で差分 2 件（`20260924-tsutatsu-clause-forms`、`20260925-tsu
 | 項目 | 状態 |
 |---|---|
 | 取り込みの自動化（`spec-ids apply`） | 5 章の書式で houki-nta-mcp の差分 2 件を手で取り込んだ。0.3.0 には入れていない。入れる版は決まっていない |
-| `pr-scope` の置き場 | 今は houki-egov-mcp・houki-nta-mcp・houki-abbreviations のコピー。中身は少しずつ違う（テスト名に ID を足すだけかの判定、`.gitkeep` の除外、取り込み済み差分の `specs/changes/` の残りを消すことの許可、変換の例外、テストの件数。houki-abbreviations PR #38 の表）。spec-ids #5 の後の版で、spec-ids のサブコマンド `spec-ids pr-scope` として取り込む（設計の Q20）。houki-nta-mcp のコピーにある、変換のための例外（`specs/changes/` の proposal.md の front matter への書き換えを通すもの。houki-hub の計画書の Q23'）は、このときに外す |
-| `spec-ids migrate` | houki 系 3 リポジトリの変換は 2026-10-09 JST に済んだ（houki-egov-mcp PR #117、houki-nta-mcp PR #159、houki-abbreviations PR #38）。0.4.0 で外す予定 |
 | spec-ids 自身の `specs/` | spec-ids #5 の後に、最初から front matter の形で初版起こしする（houki-hub の計画書の Q21 の案 A'）。`spec-gate` は 1 つ前に publish した版の `check` で回す |
 | Auditor | 今は人の目と CI だけ。ID ごとの一致を CI の結果から PR に出す形を検討する |
 | クラウドセッションの署名 | どの鍵の署名として GitHub に出るかを、最初の運用で確かめて 8 章を直す |
+
+0.4.0 で決まったもの（spec-ids #9）:
+
+- `pr-scope` の置き場: houki-egov-mcp・houki-nta-mcp・houki-abbreviations の `.github/scripts/check-pr-scope.mjs` のコピーを、spec-ids のサブコマンド `spec-ids pr-scope` にまとめた。コピーの違いは、テスト名に ID を足すだけかの判定を houki-egov-mcp・houki-nta-mcp の形に、`.gitkeep` の除外と取り込み済み差分の残りの削除を「入れる」にそろえ、houki-nta-mcp のコピーにあった変換のための例外（houki-hub の計画書の Q23'）は入れなかった。ブランチ名の接頭辞は固定し、設定には出していない
+- `spec-ids migrate`: houki 系 3 リポジトリの変換は 2026-10-09 JST に済んだ（houki-egov-mcp PR #117、houki-nta-mcp PR #159、houki-abbreviations PR #38）ので、0.4.0 で外した。0.2.0 までの形のリポジトリは、`npx @shuji-bonji/spec-ids@0.3.0 migrate --write` で変換してから上げる
 
 ## 付録 A. houki-nta-mcp での追随作業
 
