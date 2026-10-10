@@ -14,6 +14,16 @@ export { formatHistory, history, historyAll } from './history.mjs';
 export { init } from './init.mjs';
 export { dirNameOfTarget, nextIds } from './next.mjs';
 export {
+  checkScope,
+  DEFAULT_BASE,
+  formatScopeReport,
+  kindOf,
+  onlyIdsAdded,
+  parseNameStatus,
+  prScope,
+  releasedIds,
+} from './pr-scope.mjs';
+export {
   collect,
   collectHeadings,
   featureOfSpecPath,

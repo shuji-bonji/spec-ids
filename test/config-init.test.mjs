@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { findRoot, loadConfig, normalizeConfig } from '../src/config.mjs';
@@ -52,7 +52,15 @@ test('init は置き場・設定・workflow を作り、既存は変更しない
   assert.match(r1.agentsSection, /SPEC-EGOV-GET-THING-001/);
   assert.match(r1.agentsSection, /接頭辞 `egov_`/);
   assert.equal(readFileSync(join(root, 'AGENTS.md'), 'utf8'), '# existing\n');
-  assert.equal(existsSync(join(root, '.github/workflows/spec-gate.yml')), true);
+  const wf = readFileSync(join(root, '.github/workflows/spec-gate.yml'), 'utf8');
+  assert.match(wf, /- run: npx spec-ids check/);
+  // pr-scope のジョブ: PR のときだけ、履歴をすべて取り、npm ci の後に npx spec-ids pr-scope
+  const prScope = wf.slice(wf.indexOf('  pr-scope:'));
+  assert.match(prScope, /if: github\.event_name == 'pull_request'/);
+  assert.match(prScope, /fetch-depth: 0/);
+  assert.match(prScope, /- run: npm ci\n\s+- run: npx spec-ids pr-scope\n/);
+  assert.match(prScope, /BASE_REF: origin\/\$\{\{ github\.base_ref \}\}/);
+  assert.match(prScope, /HEAD_REF: \$\{\{ github\.head_ref \}\}/);
 
   const r2 = init(root, { domain: 'EGOV' });
   assert.deepEqual(r2.created, []);

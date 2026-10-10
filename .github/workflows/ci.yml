@@ -30,8 +30,8 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
       - run: npm test
-      # CLI を実際に動かす（init → check → next → history）
-      - name: smoke test (init, check, next, history)
+      # CLI を実際に動かす（init → check → next → history → pr-scope）
+      - name: smoke test (init, check, next, history, pr-scope)
         run: |
           set -eu
           tmp=$(mktemp -d)
@@ -43,3 +43,12 @@ jobs:
           node "$GITHUB_WORKSPACE/bin/spec-ids.mjs" check
           test "$(node "$GITHUB_WORKSPACE/bin/spec-ids.mjs" next get_thing)" = "SPEC-DEMO-GET-THING-002"
           node "$GITHUB_WORKSPACE/bin/spec-ids.mjs" history get_thing | grep -qF '| 2026-10-09 | （初版） | #1 | - |'
+          git init -q -b main
+          git -c user.name=ci -c user.email=ci@example.com add -A
+          git -c user.name=ci -c user.email=ci@example.com commit -q -m base
+          git switch -q -c spec/20261010-demo
+          mkdir -p specs/changes/20261010-demo
+          printf -- '---\napproved: 2026-10-10\npr: 2\nimplementation: none\ntargets: [get_thing]\n---\n# 差分\n' > specs/changes/20261010-demo/proposal.md
+          git -c user.name=ci -c user.email=ci@example.com add -A
+          git -c user.name=ci -c user.email=ci@example.com commit -q -m spec
+          BASE_REF=main node "$GITHUB_WORKSPACE/bin/spec-ids.mjs" pr-scope

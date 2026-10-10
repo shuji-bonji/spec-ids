@@ -7,15 +7,15 @@
  *   spec-ids init --domain NTA [--dir-prefix nta_] [--tests "src/**\/*.test.ts,tests/**\/*.test.ts"]
  *                                                    置き場と設定と CI を作る
  *   spec-ids history <dir> [--json] / --all [--json] 機能ごとの承認の履歴を表示する
- *   spec-ids migrate [--json | --write]              古い形の承認の行を front matter に変換する（0.3.0 だけ。0.4.0 で外す）
+ *   spec-ids pr-scope [--base <ref>] [--branch <name>] PR の種類ごとに変えてよいパスと承認の空欄を検査する
  */
 import { readFileSync } from 'node:fs';
 import { check, formatReport } from '../src/check.mjs';
 import { CONFIG_PATH, DEFAULT_TESTS, findRoot, loadConfig } from '../src/config.mjs';
 import { formatHistory, history, historyAll } from '../src/history.mjs';
 import { init } from '../src/init.mjs';
-import { formatMigration, migrationJson, planMigration, writeMigration } from '../src/migrate.mjs';
 import { nextIds } from '../src/next.mjs';
+import { formatScopeReport, prScope } from '../src/pr-scope.mjs';
 
 const USAGE = `使い方:
   spec-ids check
@@ -23,7 +23,7 @@ const USAGE = `使い方:
   spec-ids init --domain <領域> [--dir-prefix <接頭辞>] [--tests <glob,glob>]
   spec-ids history <dir> [--json]
   spec-ids history --all [--json]
-  spec-ids migrate [--json | --write]   （0.3.0 だけ。0.4.0 で外す）
+  spec-ids pr-scope [--base <ref>] [--branch <name>]
   spec-ids --version
 
 設定は ${CONFIG_PATH}（cwd から上へ辿って探す）。`;
@@ -119,29 +119,27 @@ function main(argv) {
       }
       break;
     }
-    case 'migrate': {
-      // 0.3.0 だけに置く一時的なサブコマンド。0.4.0 で外す（src/migrate.mjs）
-      const root = requireRoot();
-      const json = args.includes('--json');
-      const write = args.includes('--write');
-      if (json && write) {
+    case 'pr-scope': {
+      // 基準のコミットとブランチ名は、オプション → 環境変数 BASE_REF / HEAD_REF → 既定値の順で決める
+      const known = new Set(['--base', '--branch']);
+      const flags = args.filter((a) => a.startsWith('--'));
+      const base = opt(args, '--base');
+      const branch = opt(args, '--branch');
+      if (
+        flags.some((f) => !known.has(f)) ||
+        positionals(args).length > 0 ||
+        (args.includes('--base') && (base === undefined || base.startsWith('--'))) ||
+        (args.includes('--branch') && (branch === undefined || branch.startsWith('--')))
+      ) {
         console.error(USAGE);
         process.exit(2);
       }
-      const plan = planMigration(root, loadConfig(root));
-      const failed = plan.mismatches.length > 0;
-      if (json) {
-        console.log(JSON.stringify(migrationJson(plan), null, 2));
-        process.exit(failed ? 1 : 0);
-      }
-      const { out, err } = formatMigration(plan);
+      const root = requireRoot();
+      const result = prScope(root, loadConfig(root), { base, branch });
+      const { out, err } = formatScopeReport(result);
       for (const line of out) console.log(line);
       for (const line of err) console.error(line);
-      if (write && !failed) {
-        const written = writeMigration(root, plan);
-        console.log(`書き換えた: ${written.length} files`);
-      }
-      process.exit(failed ? 1 : 0);
+      process.exit(result.errors.length === 0 ? 0 : 1);
       break;
     }
     case '--version':

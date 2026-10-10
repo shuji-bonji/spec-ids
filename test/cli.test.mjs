@@ -2,12 +2,15 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { fixture, fm, run, SPEC_OK, TEST_OK } from './helpers.mjs';
 
-test('bin の USAGE: history と migrate を載せる', () => {
+test('bin の USAGE: history と pr-scope を載せ、migrate は載せない（0.4.0 で外した）', () => {
   const r = run(fixture({}), ['--help']);
   assert.equal(r.status, 0);
   assert.match(r.stdout, /spec-ids history <dir> \[--json\]/);
   assert.match(r.stdout, /spec-ids history --all \[--json\]/);
-  assert.match(r.stdout, /spec-ids migrate \[--json \| --write\]/);
+  assert.match(r.stdout, /spec-ids pr-scope \[--base <ref>\] \[--branch <name>\]/);
+  assert.doesNotMatch(r.stdout, /migrate/);
+  const migrate = run(fixture({}), ['migrate']);
+  assert.equal(migrate.status, 2);
 });
 
 test('spec-ids check: 出力の 2 行目が proposals: の行で、検査 5〜7 の食い違いがあれば exit 1', () => {

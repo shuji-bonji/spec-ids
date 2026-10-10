@@ -13,9 +13,13 @@ import { fileURLToPath } from 'node:url';
 
 const BIN = fileURLToPath(new URL('../bin/spec-ids.mjs', import.meta.url));
 
-/** CLI を root で動かす。戻り値は { status, stdout, stderr } */
-export function run(root, args) {
-  const r = spawnSync(process.execPath, [BIN, ...args], { cwd: root, encoding: 'utf8' });
+/** CLI を root で動かす。env を渡すと環境変数に足す。戻り値は { status, stdout, stderr } */
+export function run(root, args, env = {}) {
+  const r = spawnSync(process.execPath, [BIN, ...args], {
+    cwd: root,
+    encoding: 'utf8',
+    env: { ...process.env, ...env },
+  });
   return { status: r.status, stdout: r.stdout, stderr: r.stderr };
 }
 
