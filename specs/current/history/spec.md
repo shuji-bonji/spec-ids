@@ -1,9 +1,10 @@
 ---
 spec_id: SPECIDS
 kind: cli
-approved:
-pr:
+approved: 2026-10-11
+pr: 14
 ---
+
 # 機能: history（機能ごとの承認の履歴の表示）
 
 - 版: current
@@ -19,11 +20,11 @@ pr:
 
 ## 入力
 
-| 引数・オプション | 必須 | 内容 |
-| --- | --- | --- |
-| `<dir>` | `--all` が無ければ必須 | `<dir>`、`specs/current/<dir>`、`specs/current/<dir>/spec.md` のどれか |
-| `--all` | 任意 | すべての機能を表示する。`<dir>` と一緒には使えない |
-| `--json` | 任意 | 表ではなく JSON で表示する |
+| 引数・オプション | 必須                   | 内容                                                                   |
+| ---------------- | ---------------------- | ---------------------------------------------------------------------- |
+| `<dir>`          | `--all` が無ければ必須 | `<dir>`、`specs/current/<dir>`、`specs/current/<dir>/spec.md` のどれか |
+| `--all`          | 任意                   | すべての機能を表示する。`<dir>` と一緒には使えない                     |
+| `--json`         | 任意                   | 表ではなく JSON で表示する                                             |
 
 読むもの: `specs/current/<dir>/spec.md` の front matter と、`specs/releases/<tag>/<id>/proposal.md`・`specs/changes/<id>/proposal.md` の front matter。
 
@@ -116,6 +117,6 @@ current の `spec.md` に `introduced_by` があるときは、初版の行を�
 
 初版起こしで見つけた、意図か不具合かを人が決める項目と、テストが無いため ID を振らなかった項目です。決まったら「できること」に ID を振るか、`specs/changes/` の差分にします。
 
-1. **知らないオプションを黙って無視する。** `spec-ids history a --jsno` は `--jsno` を無視して表を出し、終了コード 0（2026-10-11 JST に確かめた）。`pr-scope` は知らないオプションを exit 2 にする（SPEC-SPECIDS-PR-SCOPE-006）のと扱いが違う。意図か不具合かを決める
+1. **知らないオプションを黙って無視する。** → 2026-10-11 JST に shuji が不具合と決めた（案 B）。`pr-scope`（SPEC-SPECIDS-PR-SCOPE-006）にそろえ、知らないオプションと値の無いオプションは使い方を出して exit 2 で止める。`next`（未決 2）と `init`（未決 3）も同じ仕様 PR でそろえる。今の振る舞い（同じ日に確かめた）: `--` で始まる引数は `--json` と `--all` のほかはすべて捨てる。`history a --jsno` は表を出して exit 0、`history --al a` は `a` の表を出して exit 0。`-` 1 つの `history a -j` は位置引数とみなして exit 2
 2. **`<dir>` と `--all` を両方渡したときの exit 2。** README のとおり終了コード 2 になる（同じ日に確かめた）が、テストが無い
 3. **初版の `approved` か `pr` の形が違うときは、初版の行を出さない。** エラーにはせず、ほかの行だけを出す。テストが無い

@@ -1,9 +1,10 @@
 ---
 spec_id: SPECIDS
 kind: common
-approved:
-pr:
+approved: 2026-10-11
+pr: 14
 ---
+
 # 機能: frontmatter（front matter の読み方と、承認の記録のキー）
 
 - 版: current
@@ -22,11 +23,11 @@ pr:
 
 front matter を書くファイルは次の 3 か所です。
 
-| ファイル | 使えるキー |
-| --- | --- |
-| `specs/current/<dir>/spec.md` | `spec_id`・`kind`・`approved`・`pr`・`introduced_by` |
-| `specs/changes/<id>/proposal.md`（草案） | `approved`・`pr`・`implementation`・`targets` |
-| `specs/releases/<tag>/<id>/proposal.md`（取り込み済み） | `approved`・`pr`・`implementation`・`targets` |
+| ファイル                                                | 使えるキー                                           |
+| ------------------------------------------------------- | ---------------------------------------------------- |
+| `specs/current/<dir>/spec.md`                           | `spec_id`・`kind`・`approved`・`pr`・`introduced_by` |
+| `specs/changes/<id>/proposal.md`（草案）                | `approved`・`pr`・`implementation`・`targets`        |
+| `specs/releases/<tag>/<id>/proposal.md`（取り込み済み） | `approved`・`pr`・`implementation`・`targets`        |
 
 ## 処理の流れ
 
@@ -55,13 +56,13 @@ flowchart TD
 
 ファイルの 1 行目が `---` のとき、次の `---` の行までを front matter として読む。1 行に `キー: 値` が 1 つ。値は前後の空白を除いてから、次の 5 つの形のどれかとして読む。
 
-| 値の書き方 | 読んだ値 |
-| --- | --- |
-| 空 | 空（`null`） |
-| 正の整数（`89`） | 数 |
-| `YYYY-MM-DD`（`2026-10-01`） | 文字列 |
-| 英数字と `_`・`-` だけの文字列（`required`・`20261004-db-location`） | 文字列 |
-| 1 行の配列（`[a, b, c]`） | 文字列の配列 |
+| 値の書き方                                                           | 読んだ値     |
+| -------------------------------------------------------------------- | ------------ |
+| 空                                                                   | 空（`null`） |
+| 正の整数（`89`）                                                     | 数           |
+| `YYYY-MM-DD`（`2026-10-01`）                                         | 文字列       |
+| 英数字と `_`・`-` だけの文字列（`required`・`20261004-db-location`） | 文字列       |
+| 1 行の配列（`[a, b, c]`）                                            | 文字列の配列 |
 
 読んだ結果には、閉じる `---` の行までの行数を含める。
 
@@ -91,7 +92,7 @@ flowchart TD
 
 例: `approved: 2026-10-01 # 承認日`・`implementation: "required"`・`implementation: 'required'`・`targets: [get_toc, "search_law"]` は、どれもエラー 1 件でキーが入らない。`targets:`・`  - get_toc`・`  - search_law` の 3 行は、エラー 2 件で `targets` は空。
 
-### SPEC-SPECIDS-FRONTMATTER-006 キーは英小文字と _ だけで、同じキーは 1 回だけ
+### SPEC-SPECIDS-FRONTMATTER-006 キーは英小文字と \_ だけで、同じキーは 1 回だけ
 
 キーは英小文字と `_` だけで書く。大文字や `-` を含むキーの行はエラーにしてキーを入れない。同じキーが 2 回目に出た行はエラーにし、1 回目の値を残す。
 
@@ -103,7 +104,7 @@ front matter の中の、`キー:` の形でない行（空の行、`:` の無�
 
 例: `approved: 2026-10-01`・空の行・`just-a-value` の 3 行は、エラー 2 件で `approved` だけが入る。
 
-### SPEC-SPECIDS-FRONTMATTER-008 配列は 1 行で書き、要素は英数字と _・- だけ
+### SPEC-SPECIDS-FRONTMATTER-008 配列は 1 行で書き、要素は英数字と \_・- だけ
 
 配列は `[` と `]` で囲んだ 1 行に、`,` で区切って書く。要素の前後の空白は除く。`[]` は空の配列。要素に英数字と `_`・`-` 以外の文字（空白・`/`）があるとき、空の要素があるとき、`]` で閉じていないときはエラーにする。
 

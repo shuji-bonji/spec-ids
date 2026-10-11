@@ -1,9 +1,10 @@
 ---
 spec_id: SPECIDS
 kind: cli
-approved:
-pr:
+approved: 2026-10-11
+pr: 14
 ---
+
 # 機能: check（仕様 ID とテストの突き合わせと、承認の記録の検査）
 
 - 版: current
@@ -20,13 +21,13 @@ pr:
 
 ## 入力
 
-| もの | 内容 |
-| --- | --- |
-| 設定 | `specs/spec-ids.json`（SPEC-SPECIDS-CONFIG-001〜006）。引数とオプションは無い |
-| current | `specs/current/` の下の `spec.md`（出荷済みの正） |
-| changes | `specs/changes/` の下の `spec.md`（承認済みでも未出荷の差分） |
-| 差分 | `specs/changes/<id>/proposal.md` と `specs/releases/<tag>/<id>/proposal.md`、それぞれの `specs/<dir>/spec.md` |
-| テストファイル | 設定 `tests` の glob に合うファイル（SPEC-SPECIDS-CONFIG-004・005） |
+| もの           | 内容                                                                                                          |
+| -------------- | ------------------------------------------------------------------------------------------------------------- |
+| 設定           | `specs/spec-ids.json`（SPEC-SPECIDS-CONFIG-001〜006）。引数とオプションは無い                                 |
+| current        | `specs/current/` の下の `spec.md`（出荷済みの正）                                                             |
+| changes        | `specs/changes/` の下の `spec.md`（承認済みでも未出荷の差分）                                                 |
+| 差分           | `specs/changes/<id>/proposal.md` と `specs/releases/<tag>/<id>/proposal.md`、それぞれの `specs/<dir>/spec.md` |
+| テストファイル | 設定 `tests` の glob に合うファイル（SPEC-SPECIDS-CONFIG-004・005）                                           |
 
 ## 処理の流れ
 
@@ -177,11 +178,11 @@ changes の見出しにだけあり current に無い ID は、テスト名に�
 
 検査 1〜7 のどれか 1 件でもあれば、数えた結果の 3 行を標準出力に出し（`OK:` の行は出さない）、食い違いを種類ごとに、空行・見出しの行・`  ` で始まる行の順で標準エラー出力に出し、終了コード 1 で終わる。検査 5〜7 の見出しと行は次のとおり。
 
-| 検査 | 見出しの行 | 続く行 |
-| --- | --- | --- |
-| 5 | `front matter が無い、または形が違う:` | `  <ファイル>: <理由>` |
-| 6 | `targets の漏れ:` | `  <proposal.md>: <理由>`（理由に `<dir>` が入る） |
-| 7 | `古い「- 承認日:」の行が残っている:` | `  <ファイル>:<行番号>` |
+| 検査 | 見出しの行                             | 続く行                                             |
+| ---- | -------------------------------------- | -------------------------------------------------- |
+| 5    | `front matter が無い、または形が違う:` | `  <ファイル>: <理由>`                             |
+| 6    | `targets の漏れ:`                      | `  <proposal.md>: <理由>`（理由に `<dir>` が入る） |
+| 7    | `古い「- 承認日:」の行が残っている:`   | `  <ファイル>:<行番号>`                            |
 
 例: front matter の無い `specs/current/nta_search_qa/spec.md` の 2 行目に `- 承認日: 2026-09-22（PR #49）` があり、取り込み済みの差分の `specs/nta_search_qa/spec.md` が `targets` に無いリポジトリでは、標準出力は 3 行で、標準エラー出力に 3 つの見出しと、`  specs/current/nta_search_qa/spec.md: …`、`nta_search_qa` を含む `  specs/releases/v1.0.0/20261001-a/proposal.md: …`、`  specs/current/nta_search_qa/spec.md:2` が入る。CLI では終了コード 1。
 
@@ -197,6 +198,6 @@ changes の見出しにだけあり current に無い ID は、テスト名に�
 
 初版起こしで見つけた、意図か不具合かを人が決める項目と、テストが無いため ID を振らなかった項目です。決まったら「できること」に ID を振るか、`specs/changes/` の差分にします。
 
-1. **`specs/current/<dir>/<下のフォルダー>/spec.md` の見出しは、current として数えるが、検査 4・5 の対象にならない。** `specs/current/a/b/spec.md` の `### SPEC-NTA-ZZZ-001` を current の ID として数え（`current: 2 files`）、テストを求める（検査 2）。一方で、機能をディレクトリ名から導けないので検査 4 で止めず、front matter も見ない（2026-10-11 JST に 0.4.0 の作業ツリーの `check` で確かめた）。採番（`next`）も同じ見出しを数える。意図か不具合か（止めるべきか）を決める
+1. **`specs/current/<dir>/<下のフォルダー>/spec.md` の見出しは、current として数えるが、検査 4・5 の対象にならない。** → 2026-10-11 JST に shuji が不具合と決めた（案 B）。`specs/current/<dir>/spec.md` 以外の場所にある `spec.md`（`specs/current/spec.md` と、2 段目より深い `spec.md`）を、新しい種類の食い違いとして止める。別の Issue と仕様 PR にする。今の振る舞い（同じ日に 0.4.0 の作業ツリーで確かめた）: その見出しを current の ID として数えてテストを求め（検査 2）、採番（`next`）でも数える。一方で、検査 4・5・7 と `history` では見ない。`pr-scope` は、初版起こしでの変更は範囲の外として止めるが、実装 PR での追加は承認を確かめずに通す
 2. **検査 1〜4 の標準エラー出力の見出しの文のテストが無い。** 今は `同じ箱（current または changes）の見出しに同じ ID が 2 回以上ある（採番の衝突）:`・`見出しの ID が、その spec.md のディレクトリから導いた機能と一致しない:`・`specs/current にあってテストに無い ID:`・`テストにあって specs/current にも specs/changes にも見出しが無い ID:` を出す。テストを足してから SPEC-SPECIDS-CHECK-020 に含める
 3. **食い違いの種類を並べる順。** 今は検査 1・4・2・3・5・6・7 の順（README の表の番号の順ではない）で、テストが無い

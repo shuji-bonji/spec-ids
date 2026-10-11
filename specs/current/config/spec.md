@@ -1,9 +1,10 @@
 ---
 spec_id: SPECIDS
 kind: common
-approved:
-pr:
+approved: 2026-10-11
+pr: 14
 ---
+
 # 機能: config（設定 specs/spec-ids.json の探し方・キー・既定値）
 
 - 版: current
@@ -21,11 +22,11 @@ pr:
 
 `specs/spec-ids.json`（JSON のオブジェクト）。
 
-| キー | 必須 | 内容 |
-| --- | --- | --- |
-| `domain` | 必須 | 領域。英大文字だけの文字列（例: `"NTA"`） |
+| キー        | 必須 | 内容                                                                               |
+| ----------- | ---- | ---------------------------------------------------------------------------------- |
+| `domain`    | 必須 | 領域。英大文字だけの文字列（例: `"NTA"`）                                          |
 | `dirPrefix` | 任意 | ディレクトリ名から機能を導くときに除く接頭辞（SPEC-SPECIDS-FORMAT-002）。既定 `""` |
-| `tests` | 任意 | テストファイルの glob の配列。既定 `["src/**/*.test.ts", "tests/**/*.test.ts"]` |
+| `tests`     | 任意 | テストファイルの glob の配列。既定 `["src/**/*.test.ts", "tests/**/*.test.ts"]`    |
 
 ## できること
 
@@ -47,15 +48,15 @@ pr:
 
 例: `{"domain":"nta"}` は `specs/spec-ids.json の domain は英大文字の文字列にしてください（例: "NTA"）。今の値: "nta"` のエラー。`{"domain":"NTA","tests":"src"}` は `tests` のエラー。
 
-### SPEC-SPECIDS-CONFIG-004 tests の glob は **・*・? を扱い、基点からの相対パスに合わせる
+### SPEC-SPECIDS-CONFIG-004 tests の glob は \*_・_・? を扱い、基点からの相対パスに合わせる
 
 `tests` の glob は、基点からの相対パス（`/` 区切り）の全体に合わせる。使えるのは次の 3 つだけ。
 
-| 書き方 | 意味 |
-| --- | --- |
-| `**/` | 0 個以上のフォルダー |
-| `*` | `/` を含まない 0 文字以上 |
-| `?` | `/` でない 1 文字 |
+| 書き方 | 意味                      |
+| ------ | ------------------------- |
+| `**/`  | 0 個以上のフォルダー      |
+| `*`    | `/` を含まない 0 文字以上 |
+| `?`    | `/` でない 1 文字         |
 
 例: `src/**/*.test.ts` は `src/a.test.ts` と `src/x/y/a.test.ts` に合い、`src/a.ts` と `lib/a.test.ts` に合わない。`tests/*.spec.ts` は `tests/a/b.spec.ts` に合わない。`src/a?.ts` は `src/ab.ts` に合う。`tests: ["src/**/*.spec.ts"]` のリポジトリでは、`check` は `src/app/a.spec.ts` だけを読み、`src/app/b.test.ts` の ID は数えない。
 
@@ -67,7 +68,7 @@ pr:
 
 ### SPEC-SPECIDS-CONFIG-006 設定が見つからないときは、init を案内して exit 2
 
-`check`・`next`・`history`・`pr-scope` は、設定が見つからないとき（SPEC-SPECIDS-CONFIG-001）、標準エラー出力に `` specs/spec-ids.json が見つかりません。リポジトリのルートで `spec-ids init --domain <領域>` を実行してください `` を出し、終了コード 2 で終わる。
+`check`・`next`・`history`・`pr-scope` は、設定が見つからないとき（SPEC-SPECIDS-CONFIG-001）、標準エラー出力に ``specs/spec-ids.json が見つかりません。リポジトリのルートで `spec-ids init --domain <領域>` を実行してください`` を出し、終了コード 2 で終わる。
 
 例: `specs/spec-ids.json` の無いフォルダーで `spec-ids pr-scope` を実行すると、この文を出して終了コード 2。
 

@@ -1,9 +1,10 @@
 ---
 spec_id: SPECIDS
 kind: cli
-approved:
-pr:
+approved: 2026-10-11
+pr: 14
 ---
+
 # 機能: pr-scope（PR の種類ごとに変えてよいパスと、承認の空欄の検査）
 
 - 版: current
@@ -19,14 +20,14 @@ pr:
 
 ## 入力
 
-| 入力 | 決め方 |
-| --- | --- |
-| 比べる基準のコミット | `--base`、無ければ環境変数 `BASE_REF`、無ければ `origin/main` |
-| PR のブランチ名 | `--branch`、無ければ環境変数 `HEAD_REF`、無ければ今のブランチ |
-| 変わったファイル | 基準との merge-base から `HEAD` までの、名前の変更を含む変更の一覧（追加・変更・削除・名前の変更） |
-| テストファイルの行の差分 | 変わったテストファイルの、前後の文脈の無い行の差分 |
-| ファイルの中身と `specs/releases/` | 作業ツリー |
-| 設定 | `specs/spec-ids.json`（`tests` をテストファイルの判定に使う） |
+| 入力                               | 決め方                                                                                             |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------- |
+| 比べる基準のコミット               | `--base`、無ければ環境変数 `BASE_REF`、無ければ `origin/main`                                      |
+| PR のブランチ名                    | `--branch`、無ければ環境変数 `HEAD_REF`、無ければ今のブランチ                                      |
+| 変わったファイル                   | 基準との merge-base から `HEAD` までの、名前の変更を含む変更の一覧（追加・変更・削除・名前の変更） |
+| テストファイルの行の差分           | 変わったテストファイルの、前後の文脈の無い行の差分                                                 |
+| ファイルの中身と `specs/releases/` | 作業ツリー                                                                                         |
+| 設定                               | `specs/spec-ids.json`（`tests` をテストファイルの判定に使う）                                      |
 
 ## 処理の流れ
 
@@ -167,7 +168,7 @@ OK: この種類の PR が変えてよい範囲に収まっています
 
 例: 承認の空欄のある `specs/current/lookup_by_law_id/spec.md` を足し、`src/lookup.ts` を変えた初版起こしは、`src/lookup.ts` の違反と承認の違反（SPEC-SPECIDS-PR-SCOPE-022）の 2 件で止まる。
 
-### SPEC-SPECIDS-PR-SCOPE-018 テストファイルは、設定 tests の glob に合うものと *.test.* の名前のもの
+### SPEC-SPECIDS-PR-SCOPE-018 テストファイルは、設定 tests の glob に合うものと _.test._ の名前のもの
 
 テストファイルとして扱うのは、設定 `tests` の glob（SPEC-SPECIDS-CONFIG-004）に合うファイルと、名前が `*.test.js`・`*.test.ts`・`*.test.mjs`・`*.test.cjs`・`*.test.mts`・`*.test.cts` のファイル。
 
