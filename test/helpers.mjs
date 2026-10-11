@@ -84,9 +84,21 @@ export const SPEC_OK = `${fm({ spec_id: 'NTA', approved: '2026-09-22', pr: 49 })
 本文。SPEC-NTA-GET-TSUTATSU-001 を参照する。
 `;
 
+/**
+ * テストファイルの 1 行（`it('<name>', () => {});` など）を実行時に組み立てる。
+ * spec-ids 自身の `spec-ids check` は test/*.test.mjs の describe( / it( / test( の文字列から仕様 ID を拾う。
+ * 検査の見本の ID をソースにそのまま書くと「テストにあって仕様に無い ID」として拾われるので、
+ * ソースには `it(` の直後に引用符を書かず、この関数で組み立てる。
+ * 例: itLine('名前') は it('名前', () => {}); を返す。
+ *     itLine('名前', { quote: '"', tail: ', async () => {' }) は it("名前", async () => { を返す。
+ */
+export function itLine(name, { quote = "'", tail = ', () => {});' } = {}) {
+  return `it(${quote}${name}${quote}${tail}`;
+}
+
 export const TEST_OK = `import { describe, it } from 'vitest';
 describe('getTsutatsu', () => {
-  it('SPEC-NTA-GET-TSUTATSU-001 辞書に無い名前はエラー', () => {});
-  it("SPEC-NTA-GET-TSUTATSU-002 clause 未指定はエラー", () => {});
+  ${itLine('SPEC-NTA-GET-TSUTATSU-001 辞書に無い名前はエラー')}
+  ${itLine('SPEC-NTA-GET-TSUTATSU-002 clause 未指定はエラー', { quote: '"' })}
 });
 `;

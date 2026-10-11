@@ -21,7 +21,7 @@ import {
   releasedIds,
   testFileMatcher,
 } from '../src/pr-scope.mjs';
-import { fixture, fm, run } from './helpers.mjs';
+import { fixture, fm, itLine, run } from './helpers.mjs';
 
 const APPROVED_PROPOSAL = `${fm({
   approved: '2026-09-25',
@@ -251,7 +251,7 @@ test('初版起こし: spec.md の追加と、テスト名に ID を足すだけ
     `+++ b/${t}`,
     '@@ -1 +1 @@',
     "-  it('未知の law_id は null', async () => {",
-    "+  it('SPEC-ABBR-LOOKUP-BY-LAW-ID-001 未知の law_id は null', async () => {",
+    `+  ${itLine('SPEC-ABBR-LOOKUP-BY-LAW-ID-001 未知の law_id は null', { tail: ', async () => {' })}`,
   ].join('\n');
   const errors = scope(
     'spec-init',
@@ -268,8 +268,8 @@ test('初版起こし: spec.md の追加と、テスト名に ID を足すだけ
 test('初版起こし: すでに ID の付いたテスト名に別の ID を足すのは通す（決定 1）', () => {
   const diff = [
     '@@ -1 +1 @@',
-    "-  it('SPEC-EGOV-GET-LAW-001 範囲外の名前は OUT_OF_SCOPE', async () => {",
-    "+  it('SPEC-EGOV-GET-LAW-001 SPEC-EGOV-COMMON-ERRORS-004 範囲外の名前は OUT_OF_SCOPE', async () => {",
+    `-  ${itLine('SPEC-EGOV-GET-LAW-001 範囲外の名前は OUT_OF_SCOPE', { tail: ', async () => {' })}`,
+    `+  ${itLine('SPEC-EGOV-GET-LAW-001 SPEC-EGOV-COMMON-ERRORS-004 範囲外の名前は OUT_OF_SCOPE', { tail: ', async () => {' })}`,
   ].join('\n');
   assert.equal(onlyIdsAdded(diff), true);
   const t = 'src/get-law.test.ts';
@@ -279,14 +279,14 @@ test('初版起こし: すでに ID の付いたテスト名に別の ID を足�
 test('初版起こし: テスト名から既存の ID を消す・別の ID に差し替えると止まる（決定 1）', () => {
   const removeOnly = [
     '@@ -1 +1 @@',
-    "-  it('SPEC-EGOV-GET-LAW-001 範囲外の名前は OUT_OF_SCOPE', async () => {",
+    `-  ${itLine('SPEC-EGOV-GET-LAW-001 範囲外の名前は OUT_OF_SCOPE', { tail: ', async () => {' })}`,
     "+  it('範囲外の名前は OUT_OF_SCOPE', async () => {",
   ].join('\n');
   assert.equal(onlyIdsAdded(removeOnly), false);
   const swap = [
     '@@ -1 +1 @@',
-    "-  it('SPEC-EGOV-GET-LAW-001 範囲外の名前は OUT_OF_SCOPE', async () => {",
-    "+  it('SPEC-EGOV-GET-LAW-002 範囲外の名前は OUT_OF_SCOPE', async () => {",
+    `-  ${itLine('SPEC-EGOV-GET-LAW-001 範囲外の名前は OUT_OF_SCOPE', { tail: ', async () => {' })}`,
+    `+  ${itLine('SPEC-EGOV-GET-LAW-002 範囲外の名前は OUT_OF_SCOPE', { tail: ', async () => {' })}`,
   ].join('\n');
   assert.equal(onlyIdsAdded(swap), false);
   const t = 'src/get-law.test.ts';
@@ -327,7 +327,7 @@ test('初版起こし: 設定 tests の glob に合うファイル（*.spec.ts �
   const diff = [
     '@@ -1 +1 @@',
     "-  it('x', () => {",
-    "+  it('SPEC-APP-GET-THING-001 x', () => {",
+    `+  ${itLine('SPEC-APP-GET-THING-001 x', { tail: ', () => {' })}`,
   ].join('\n');
   const changes = [{ status: 'M', path: t }];
   const input = { kind: 'spec-init', changes, read: () => '', diffOf: () => diff };
@@ -488,11 +488,11 @@ test('spec-ids pr-scope: 初版起こしのテスト名への ID の追加を gi
   const t = 'src/get-law.test.ts';
   const base = { ...BASE_FILES, [t]: "it('x', () => {});\nit('y', () => {});\n" };
   const ok = repo(base, 'spec-init/get-law', {
-    [t]: "it('SPEC-EGOV-GET-LAW-001 x', () => {});\nit('y', () => {});\n",
+    [t]: `${itLine('SPEC-EGOV-GET-LAW-001 x')}\nit('y', () => {});\n`,
   });
   assert.equal(run(ok, ['pr-scope'], { BASE_REF: 'main', HEAD_REF: '' }).status, 0);
   const ng = repo(base, 'spec-init/get-law', {
-    [t]: "it('SPEC-EGOV-GET-LAW-001 x', () => {});\nit('z', () => {});\n",
+    [t]: `${itLine('SPEC-EGOV-GET-LAW-001 x')}\nit('z', () => {});\n`,
   });
   const r = run(ng, ['pr-scope'], { BASE_REF: 'main', HEAD_REF: '' });
   assert.equal(r.status, 1);

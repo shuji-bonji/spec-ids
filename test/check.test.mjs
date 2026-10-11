@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { check, formatReport } from '../src/check.mjs';
-import { CONFIG, fixture, SPEC_OK, TEST_OK } from './helpers.mjs';
+import { CONFIG, fixture, itLine, SPEC_OK, TEST_OK } from './helpers.mjs';
 
 test('仕様とテストが一致していれば ok', () => {
   const root = fixture({
@@ -26,7 +26,7 @@ test('仕様とテストが一致していれば ok', () => {
 test('仕様にあってテストに無い ID を報告する', () => {
   const root = fixture({
     'specs/current/nta_get_tsutatsu/spec.md': SPEC_OK,
-    'src/x.test.ts': `it('SPEC-NTA-GET-TSUTATSU-001 a', () => {});`,
+    'src/x.test.ts': itLine('SPEC-NTA-GET-TSUTATSU-001 a'),
   });
   const r = check(root, CONFIG);
   assert.equal(r.ok, false);
@@ -40,7 +40,7 @@ test('仕様にあってテストに無い ID を報告する', () => {
 test('テストにあって仕様に無い ID を報告する', () => {
   const root = fixture({
     'specs/current/nta_get_tsutatsu/spec.md': SPEC_OK,
-    'src/x.test.ts': `${TEST_OK}\nit('SPEC-NTA-GET-TSUTATSU-009 old', () => {});`,
+    'src/x.test.ts': `${TEST_OK}\n${itLine('SPEC-NTA-GET-TSUTATSU-009 old')}`,
   });
   const r = check(root, CONFIG);
   assert.equal(r.ok, false);
@@ -93,7 +93,7 @@ test('領域が設定と違えば報告する', () => {
 });
 
 const ADDED_003 = '## ADDED\n\n### SPEC-NTA-GET-TSUTATSU-003 新しい\n';
-const TEST_003 = `it('SPEC-NTA-GET-TSUTATSU-003 新しい振る舞い', () => {});`;
+const TEST_003 = itLine('SPEC-NTA-GET-TSUTATSU-003 新しい振る舞い');
 
 test('仕様 PR のあと: changes にだけある ID はテストを求めない', () => {
   const root = fixture({
@@ -131,7 +131,7 @@ test('current にある ID は、changes に同じ見出しがあってもテス
   const root = fixture({
     'specs/current/nta_get_tsutatsu/spec.md': SPEC_OK,
     'specs/changes/20260925-x/spec.md': '## MODIFIED\n\n### SPEC-NTA-GET-TSUTATSU-002 変える\n',
-    'src/x.test.ts': `it('SPEC-NTA-GET-TSUTATSU-001 a', () => {});`,
+    'src/x.test.ts': itLine('SPEC-NTA-GET-TSUTATSU-001 a'),
   });
   const r = check(root, CONFIG);
   assert.equal(r.ok, false);
@@ -170,7 +170,7 @@ test('changes の中で同じ ID の見出しが 2 つあれば重複として�
 test('仕様の ID は見出しだけを数える（本文の参照だけの ID はテストにあれば報告する）', () => {
   const root = fixture({
     'specs/current/nta_get_tsutatsu/spec.md': `${SPEC_OK}\n本文だけで SPEC-NTA-GET-TSUTATSU-005 に触れる。\n`,
-    'src/x.test.ts': `${TEST_OK}\nit('SPEC-NTA-GET-TSUTATSU-005 x', () => {});`,
+    'src/x.test.ts': `${TEST_OK}\n${itLine('SPEC-NTA-GET-TSUTATSU-005 x')}`,
   });
   const r = check(root, CONFIG);
   assert.equal(r.ok, false);
@@ -188,7 +188,7 @@ test('tests の glob は設定で変えられる（Jasmine の *.spec.ts など�
       'spec_id: EGOV'
     ),
     'src/app/a.spec.ts': TEST_OK.replaceAll('NTA-GET-TSUTATSU', 'EGOV-GET-LAW'),
-    'src/app/b.test.ts': `it('SPEC-EGOV-GET-LAW-050 not scanned', () => {});`,
+    'src/app/b.test.ts': itLine('SPEC-EGOV-GET-LAW-050 not scanned'),
   });
   const r = check(root, { domain: 'EGOV', dirPrefix: '', tests: ['src/**/*.spec.ts'] });
   assert.equal(r.ok, true);
@@ -199,8 +199,8 @@ test('node_modules と dist は走査しない', () => {
   const root = fixture({
     'specs/current/nta_get_tsutatsu/spec.md': SPEC_OK,
     'src/x.test.ts': TEST_OK,
-    'node_modules/pkg/src/y.test.ts': `it('SPEC-NTA-GET-TSUTATSU-077 x', () => {});`,
-    'dist/z.test.ts': `it('SPEC-NTA-GET-TSUTATSU-078 x', () => {});`,
+    'node_modules/pkg/src/y.test.ts': itLine('SPEC-NTA-GET-TSUTATSU-077 x'),
+    'dist/z.test.ts': itLine('SPEC-NTA-GET-TSUTATSU-078 x'),
   });
   assert.equal(check(root, CONFIG).ok, true);
 });
