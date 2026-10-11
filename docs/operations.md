@@ -358,7 +358,7 @@ houki-nta-mcp で差分 2 件（`20260924-tsutatsu-clause-forms`、`20260925-tsu
 | 項目 | 状態 |
 |---|---|
 | 取り込みの自動化（`spec-ids apply`） | 5 章の書式で houki-nta-mcp の差分 2 件を手で取り込んだ。0.3.0 には入れていない。入れる版は決まっていない |
-| spec-ids 自身の `specs/` | spec-ids #5 の後に、最初から front matter の形で初版起こしする（houki-hub の計画書の Q21 の案 A'）。`spec-gate` は 1 つ前に publish した版の `check` で回す |
+| spec-ids 自身の `specs/` | 置き場（`specs/spec-ids.json`、空の `specs/current`・`specs/changes`・`specs/releases`）と `.github/workflows/spec-gate.yml` は、spec-ids #8 の 1 本目の実装 PR で入れた。`spec-gate` の `check` と `pr-scope` は、`spec-gate.yml` の `SPEC_IDS_VERSION` に書いた publish 済みの版で回す（版を上げる手順は AGENTS.md）。初版起こし（サブコマンドごとの `spec.md` と、`test/*.test.mjs` のテスト名の仕様 ID）は、2 本目の `spec-init/` の PR で行う。spec.md は最初から front matter の形で書く（houki-hub の計画書の Q21 の案 A'） |
 | Auditor | 今は人の目と CI だけ。ID ごとの一致を CI の結果から PR に出す形を検討する |
 | クラウドセッションの署名 | どの鍵の署名として GitHub に出るかを、最初の運用で確かめて 8 章を直す |
 

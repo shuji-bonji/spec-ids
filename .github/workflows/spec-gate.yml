@@ -1,0 +1,56 @@
+# spec-ids 自身の仕様 ID とテストの突き合わせ（spec-ids check）と、PR の種類ごとの変更範囲の検査（spec-ids pr-scope）。
+# 利用側の雛形（templates/spec-gate.yml）と同じ 2 つの job を、作業ツリーの bin/ ではなく、
+# publish 済みの決まった版の spec-ids で動かす。PR の中で src/ の check や pr-scope を変えても、
+# 自分の specs/ とテスト名を検査するのはいつも publish 済みの版になる（spec-ids#8 の決定 4・5）。
+#
+# 版は下の env の SPEC_IDS_VERSION の 1 か所に書く。npm の latest は使わない。
+# 版を上げるのは、新しい版を publish した後の別の PR で行う（手順は AGENTS.md）。
+#
+# npx -y @shuji-bonji/spec-ids@<版> を使わない理由: このリポジトリの中で実行すると、npm は
+# ルートの package.json（同じ名前・同じ版）を「入っている」とみなして registry から取らず、
+# bin も node_modules/.bin に無いので `spec-ids: not found`（終了コード 127）で止まる
+# （spec-ids 0.4.0・npm 10 で確かめた）。ルートの版に左右されないよう、決まった版を
+# リポジトリの外（$RUNNER_TEMP）に入れて、そこの bin を呼ぶ。
+name: spec-gate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+env:
+  SPEC_IDS_VERSION: 0.4.0
+
+jobs:
+  spec-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: publish 済みの spec-ids を入れる
+        run: |
+          npm install --prefix "$RUNNER_TEMP/spec-ids" --no-save --no-audit --no-fund "@shuji-bonji/spec-ids@${SPEC_IDS_VERSION}"
+          "$RUNNER_TEMP/spec-ids/node_modules/.bin/spec-ids" --version
+      - run: '"$RUNNER_TEMP/spec-ids/node_modules/.bin/spec-ids" check'
+
+  pr-scope:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # 基準のブランチとの merge-base を求めるので、履歴をすべて取る
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: publish 済みの spec-ids を入れる
+        run: |
+          npm install --prefix "$RUNNER_TEMP/spec-ids" --no-save --no-audit --no-fund "@shuji-bonji/spec-ids@${SPEC_IDS_VERSION}"
+          "$RUNNER_TEMP/spec-ids/node_modules/.bin/spec-ids" --version
+      - run: '"$RUNNER_TEMP/spec-ids/node_modules/.bin/spec-ids" pr-scope'
+        env:
+          BASE_REF: origin/${{ github.base_ref }}
+          HEAD_REF: ${{ github.head_ref }}

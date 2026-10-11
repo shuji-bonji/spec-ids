@@ -1,0 +1,7 @@
+{
+  "domain": "SPECIDS",
+  "dirPrefix": "",
+  "tests": [
+    "test/*.test.mjs"
+  ]
+}

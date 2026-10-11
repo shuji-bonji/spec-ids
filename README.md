@@ -466,9 +466,13 @@ Node.js 22 以上。依存パッケージはありません。
 | `src/next.mjs`                  | 採番。`spec.md` のパス、`specs/current/<dir>`、`<dir>` のどれでも受ける                                                                              |
 | `src/init.mjs`                  | 置き場・設定・`spec-gate.yml`（`spec-gate` と `pr-scope` のジョブ）を作る。既存は変更しない。`AGENTS.md` に貼る節は表示のみ                          |
 | `templates/`                    | `init` が使う `spec-gate.yml` と `AGENTS.md` の節                                                                                                    |
-| `test/*.test.mjs`               | `node:test`。一時ディレクトリに fixture を書いて関数を直接呼ぶ。`pr-scope` の CLI のテストは一時ディレクトリに git のリポジトリを作る                |
+| `test/*.test.mjs`               | `node:test`。一時ディレクトリに fixture を書いて関数を直接呼ぶ。`pr-scope` の CLI のテストは一時ディレクトリに git のリポジトリを作る。fixture の中のテスト名の見本は `test/helpers.mjs` の `itLine` で組み立てる（spec-ids 自身の `check` に拾わせない） |
 | `.github/workflows/ci.yml`      | lint / format:check / test（Node 22, 24）と、`init → check → next → history → pr-scope` を実際に走らせる smoke test                                                       |
 | `.github/workflows/publish.yml` | `v*` タグで npm に publish（OIDC + provenance）。build は無い                                                                                        |
+| `.github/workflows/spec-gate.yml` | spec-ids 自身の `check` と `pr-scope`。作業ツリーの `bin/` ではなく、`env` の `SPEC_IDS_VERSION` に書いた publish 済みの版で動かす                  |
+| `specs/spec-ids.json`           | spec-ids 自身の設定（`domain: SPECIDS`、`dirPrefix: ""`、`tests: test/*.test.mjs`）                                                                  |
+| `specs/current/` `specs/changes/` `specs/releases/` | spec-ids 自身の仕様の置き場。初版（サブコマンドごとの `spec.md`）は `spec-init/` の PR で起こす（spec-ids#8）                    |
+| `AGENTS.md`                     | spec-ids 自身の規則（仕様の正本、仕様 ID、PR の種類、`spec-gate` が使う版と、版を上げる手順）                                                        |
 
 ## 出典
 
