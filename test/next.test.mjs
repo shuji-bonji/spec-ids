@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { dirNameOfTarget, nextIds } from '../src/next.mjs';
 import { CONFIG, fixture, SPEC_OK } from './helpers.mjs';
 
-test('dirNameOfTarget はパスでもディレクトリ名でも同じ結果', () => {
+test('SPEC-SPECIDS-NEXT-001 dirNameOfTarget はパスでもディレクトリ名でも同じ結果', () => {
   for (const t of [
     'specs/current/nta_get_tsutatsu/spec.md',
     'specs/current/nta_get_tsutatsu',
@@ -14,7 +14,7 @@ test('dirNameOfTarget はパスでもディレクトリ名でも同じ結果', (
   }
 });
 
-test('その機能の最大番号 +1 を返し、changes の草案も数える', () => {
+test('SPEC-SPECIDS-NEXT-002 その機能の最大番号 +1 を返し、changes の草案も数える', () => {
   const root = fixture({
     'specs/current/nta_get_tsutatsu/spec.md': SPEC_OK,
     'specs/changes/20260922-x/spec.md': '### SPEC-NTA-GET-TSUTATSU-005 草案\n',
@@ -26,12 +26,12 @@ test('その機能の最大番号 +1 を返し、changes の草案も数える',
   ]);
 });
 
-test('まだ 1 件も無い機能は 001 から', () => {
+test('SPEC-SPECIDS-NEXT-003 まだ 1 件も無い機能は 001 から', () => {
   const root = fixture({ 'specs/current/nta_get_tsutatsu/spec.md': SPEC_OK });
   assert.deepEqual(nextIds(root, CONFIG, 'nta_search_qa'), ['SPEC-NTA-SEARCH-QA-001']);
 });
 
-test('999 を超えるときは例外', () => {
+test('SPEC-SPECIDS-NEXT-004 999 を超えるときは例外', () => {
   const root = fixture({ 'specs/current/nta_a/spec.md': '### SPEC-NTA-A-999 x\n' });
   assert.throws(() => nextIds(root, CONFIG, 'nta_a'), /3 桁を超えます/);
 });

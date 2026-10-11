@@ -48,13 +48,13 @@ function scope(kind, changes, files = {}, diffs = {}, released = new Set()) {
 
 // ---- 種類と入力の読み取り ----
 
-test('ブランチ名の接頭辞で種類が決まる', () => {
+test('SPEC-SPECIDS-PR-SCOPE-001 ブランチ名の接頭辞で種類が決まる', () => {
   assert.equal(kindOf('spec/20260925-live-scope'), 'spec');
   assert.equal(kindOf('spec-init/lookup-by-law-id'), 'spec-init');
   assert.equal(kindOf('fix/54-live-scope'), 'impl');
 });
 
-test('name-status の rename を from / path に分ける', () => {
+test('SPEC-SPECIDS-PR-SCOPE-003 name-status の rename を from / path に分ける', () => {
   assert.deepEqual(
     parseNameStatus('M\tsrc/a.ts\nR100\tspecs/changes/x/spec.md\tspecs/releases/v1/x/spec.md\n'),
     [
@@ -64,7 +64,7 @@ test('name-status の rename を from / path に分ける', () => {
   );
 });
 
-test('front matter の判定: 空の値・front matter の無い本文を「無い」とみなす', () => {
+test('SPEC-SPECIDS-PR-SCOPE-010 SPEC-SPECIDS-PR-SCOPE-022 front matter の判定: 空の値・front matter の無い本文を「無い」とみなす', () => {
   assert.equal(proposalApproved(APPROVED_PROPOSAL), true);
   assert.equal(proposalApproved('# 差分\n'), false);
   assert.equal(noImplementation(NO_IMPL_PROPOSAL), true);
@@ -75,7 +75,7 @@ test('front matter の判定: 空の値・front matter の無い本文を「無�
 
 // ---- 仕様 PR（spec/*） ----
 
-test('仕様 PR: specs/changes だけで承認日と PR 番号があれば通る', () => {
+test('SPEC-SPECIDS-PR-SCOPE-007 仕様 PR: specs/changes だけで承認日と PR 番号があれば通る', () => {
   const p = 'specs/changes/20260925-x/proposal.md';
   const errors = scope(
     'spec',
@@ -88,7 +88,7 @@ test('仕様 PR: specs/changes だけで承認日と PR 番号があれば通る
   assert.deepEqual(errors, []);
 });
 
-test('仕様 PR: src/ を変えると止まる', () => {
+test('SPEC-SPECIDS-PR-SCOPE-008 仕様 PR: src/ を変えると止まる', () => {
   const p = 'specs/changes/20260925-x/proposal.md';
   const errors = scope(
     'spec',
@@ -102,13 +102,13 @@ test('仕様 PR: src/ を変えると止まる', () => {
   assert.match(errors[0], /src\/lookup\.ts/);
 });
 
-test('仕様 PR: proposal.md が無ければ止まる', () => {
+test('SPEC-SPECIDS-PR-SCOPE-009 仕様 PR: proposal.md が無ければ止まる', () => {
   const errors = scope('spec', [{ status: 'A', path: 'specs/changes/20260925-x/spec.md' }]);
   assert.equal(errors.length, 1);
   assert.match(errors[0], /proposal\.md がありません/);
 });
 
-test('仕様 PR: front matter の approved と pr が空なら止まる', () => {
+test('SPEC-SPECIDS-PR-SCOPE-010 仕様 PR: front matter の approved と pr が空なら止まる', () => {
   const p = 'specs/changes/20260925-x/proposal.md';
   const draft = `${fm({ approved: null, pr: null, implementation: 'required', targets: ['get_law'] })}# 差分\n`;
   const errors = scope('spec', [{ status: 'A', path: p }], { [p]: draft });
@@ -116,14 +116,14 @@ test('仕様 PR: front matter の approved と pr が空なら止まる', () => 
   assert.match(errors[0], /承認日と PR 番号/);
 });
 
-test('仕様 PR: approved があっても pr が空なら止まる', () => {
+test('SPEC-SPECIDS-PR-SCOPE-010 仕様 PR: approved があっても pr が空なら止まる', () => {
   const p = 'specs/changes/20260925-x/proposal.md';
   const noPr = APPROVED_PROPOSAL.replace('pr: 60', 'pr:');
   const errors = scope('spec', [{ status: 'A', path: p }], { [p]: noPr });
   assert.equal(errors.length, 1);
 });
 
-test('仕様 PR: 古い形（本文の「- 承認日:」の行だけで front matter が無い）の proposal.md は止まる', () => {
+test('SPEC-SPECIDS-PR-SCOPE-010 仕様 PR: 古い形（本文の「- 承認日:」の行だけで front matter が無い）の proposal.md は止まる', () => {
   const p = 'specs/changes/20260925-x/proposal.md';
   const legacy = '# 差分\n\n- 承認日: 2026-09-25（PR #60）\n- 実装の変更: 要\n';
   const errors = scope('spec', [{ status: 'A', path: p }], { [p]: legacy });
@@ -131,7 +131,7 @@ test('仕様 PR: 古い形（本文の「- 承認日:」の行だけで front ma
   assert.match(errors[0], /front matter の approved と pr/);
 });
 
-test('仕様 PR: implementation: none なら specs/current も書いてよい（current の承認は要る）', () => {
+test('SPEC-SPECIDS-PR-SCOPE-011 SPEC-SPECIDS-PR-SCOPE-022 仕様 PR: implementation: none なら specs/current も書いてよい（current の承認は要る）', () => {
   const p = 'specs/changes/20260925-x/proposal.md';
   const cur = 'specs/current/resolve_abbreviation/spec.md';
   const changes = [
@@ -144,7 +144,7 @@ test('仕様 PR: implementation: none なら specs/current も書いてよい（
   assert.equal(scope('spec', changes, noDate).length, 1);
 });
 
-test('仕様 PR: implementation: required で specs/current を書くと止まる', () => {
+test('SPEC-SPECIDS-PR-SCOPE-012 仕様 PR: implementation: required で specs/current を書くと止まる', () => {
   const p = 'specs/changes/20260925-x/proposal.md';
   const cur = 'specs/current/resolve_abbreviation/spec.md';
   const errors = scope(
@@ -159,7 +159,7 @@ test('仕様 PR: implementation: required で specs/current を書くと止ま�
   assert.match(errors[0], /implementation: none/);
 });
 
-test('仕様 PR: 本文の「- 実装の変更: 不要」の行だけでは specs/current を書けない', () => {
+test('SPEC-SPECIDS-PR-SCOPE-012 仕様 PR: 本文の「- 実装の変更: 不要」の行だけでは specs/current を書けない', () => {
   const p = 'specs/changes/20260925-x/proposal.md';
   const cur = 'specs/current/resolve_abbreviation/spec.md';
   const legacy = `${APPROVED_PROPOSAL}- 実装の変更: 不要\n`;
@@ -176,7 +176,7 @@ test('仕様 PR: 本文の「- 実装の変更: 不要」の行だけでは spec
 
 // ---- 実装 PR（それ以外のブランチ） ----
 
-test('実装 PR: specs/changes を releases へ移すのはよいが、書き換えると止まる', () => {
+test('SPEC-SPECIDS-PR-SCOPE-019 実装 PR: specs/changes を releases へ移すのはよいが、書き換えると止まる', () => {
   const cur = 'specs/current/resolve_abbreviation/spec.md';
   const ok = scope(
     'impl',
@@ -192,7 +192,7 @@ test('実装 PR: specs/changes を releases へ移すのはよいが、書き換
   assert.equal(ng.length, 1);
 });
 
-test('実装 PR: 取り込んだ specs/current に初版の承認が無ければ止まる', () => {
+test('SPEC-SPECIDS-PR-SCOPE-022 実装 PR: 取り込んだ specs/current に初版の承認が無ければ止まる', () => {
   const cur = 'specs/current/resolve_abbreviation/spec.md';
   const errors = scope('impl', [{ status: 'M', path: cur }], { [cur]: UNAPPROVED_SPEC });
   assert.equal(errors.length, 1);
@@ -201,20 +201,20 @@ test('実装 PR: 取り込んだ specs/current に初版の承認が無ければ
   assert.equal(scope('impl', [{ status: 'M', path: cur }], { [cur]: legacy }).length, 1);
 });
 
-test('実装 PR: 差分で作った機能（introduced_by）は approved と pr が無くても通る', () => {
+test('SPEC-SPECIDS-PR-SCOPE-022 実装 PR: 差分で作った機能（introduced_by）は approved と pr が無くても通る', () => {
   const cur = 'specs/current/cli_new/spec.md';
   const born = `${fm({ spec_id: 'EGOV', kind: 'cli', introduced_by: '20261004-db-location' })}# 機能\n`;
   assert.deepEqual(scope('impl', [{ status: 'A', path: cur }], { [cur]: born }), []);
 });
 
-test('実装 PR: 取り込み済み（releases にある）差分の specs/changes/ に残ったファイルは消してよい（決定 3）', () => {
+test('SPEC-SPECIDS-PR-SCOPE-020 実装 PR: 取り込み済み（releases にある）差分の specs/changes/ に残ったファイルは消してよい（決定 3）', () => {
   const d = { status: 'D', path: 'specs/changes/20260927-x/proposal.md' };
   assert.deepEqual(scope('impl', [d], {}, {}, new Set(['20260927-x'])), []);
   // releases に無い差分を消すのは止める
   assert.equal(scope('impl', [d], {}, {}, new Set(['20260927-y'])).length, 1);
 });
 
-test('実装 PR: specs/changes の proposal.md を front matter の形に書き換えると止まる（決定 4。変換の例外は入れない）', () => {
+test('SPEC-SPECIDS-PR-SCOPE-019 実装 PR: specs/changes の proposal.md を front matter の形に書き換えると止まる（決定 4。変換の例外は入れない）', () => {
   const p = 'specs/changes/20261009-inspect-pdf-meta-qa-jirei/proposal.md';
   // spec-ids 0.3.0 の migrate が proposal.md を書き換えたときの git diff -U0（houki-nta-mcp #156 の差分と同じ形）
   const migrateDiff = [
@@ -243,7 +243,7 @@ test('実装 PR: specs/changes の proposal.md を front matter の形に書き�
 
 // ---- 初版起こし（spec-init/*） ----
 
-test('初版起こし: spec.md の追加と、テスト名に ID を足すだけの変更は通る', () => {
+test('SPEC-SPECIDS-PR-SCOPE-013 初版起こし: spec.md の追加と、テスト名に ID を足すだけの変更は通る', () => {
   const cur = 'specs/current/lookup_by_law_id/spec.md';
   const t = 'src/lookup.test.ts';
   const diff = [
@@ -265,7 +265,7 @@ test('初版起こし: spec.md の追加と、テスト名に ID を足すだけ
   assert.deepEqual(errors, []);
 });
 
-test('初版起こし: すでに ID の付いたテスト名に別の ID を足すのは通す（決定 1）', () => {
+test('SPEC-SPECIDS-PR-SCOPE-014 初版起こし: すでに ID の付いたテスト名に別の ID を足すのは通す（決定 1）', () => {
   const diff = [
     '@@ -1 +1 @@',
     `-  ${itLine('SPEC-EGOV-GET-LAW-001 範囲外の名前は OUT_OF_SCOPE', { tail: ', async () => {' })}`,
@@ -276,7 +276,7 @@ test('初版起こし: すでに ID の付いたテスト名に別の ID を足�
   assert.deepEqual(scope('spec-init', [{ status: 'M', path: t }], {}, { [t]: diff }), []);
 });
 
-test('初版起こし: テスト名から既存の ID を消す・別の ID に差し替えると止まる（決定 1）', () => {
+test('SPEC-SPECIDS-PR-SCOPE-015 初版起こし: テスト名から既存の ID を消す・別の ID に差し替えると止まる（決定 1）', () => {
   const removeOnly = [
     '@@ -1 +1 @@',
     `-  ${itLine('SPEC-EGOV-GET-LAW-001 範囲外の名前は OUT_OF_SCOPE', { tail: ', async () => {' })}`,
@@ -293,7 +293,7 @@ test('初版起こし: テスト名から既存の ID を消す・別の ID に�
   assert.equal(scope('spec-init', [{ status: 'M', path: t }], {}, { [t]: swap }).length, 1);
 });
 
-test('初版起こし: テストの期待値を変えると止まる', () => {
+test('SPEC-SPECIDS-PR-SCOPE-016 初版起こし: テストの期待値を変えると止まる', () => {
   const t = 'src/lookup.test.ts';
   const diff = [
     '@@ -1 +1 @@',
@@ -305,7 +305,7 @@ test('初版起こし: テストの期待値を変えると止まる', () => {
   assert.equal(errors.length, 1);
 });
 
-test('初版起こし: 承認日が無ければ止まる、src/ の実装を変えると止まる', () => {
+test('SPEC-SPECIDS-PR-SCOPE-017 SPEC-SPECIDS-PR-SCOPE-022 初版起こし: 承認日が無ければ止まる、src/ の実装を変えると止まる', () => {
   const cur = 'specs/current/lookup_by_law_id/spec.md';
   const errors = scope(
     'spec-init',
@@ -318,7 +318,7 @@ test('初版起こし: 承認日が無ければ止まる、src/ の実装を変�
   assert.equal(errors.length, 2);
 });
 
-test('初版起こし: 設定 tests の glob に合うファイル（*.spec.ts など）もテストファイルとして扱う', () => {
+test('SPEC-SPECIDS-PR-SCOPE-018 初版起こし: 設定 tests の glob に合うファイル（*.spec.ts など）もテストファイルとして扱う', () => {
   const isTestFile = testFileMatcher(['src/**/*.spec.ts']);
   assert.equal(isTestFile('src/app/a.spec.ts'), true);
   assert.equal(isTestFile('tests/x.test.mjs'), true);
@@ -338,11 +338,11 @@ test('初版起こし: 設定 tests の glob に合うファイル（*.spec.ts �
 
 // ---- どの種類でも ----
 
-test('specs に触れない PR（docs など）はそのまま通る', () => {
+test('SPEC-SPECIDS-PR-SCOPE-021 specs に触れない PR（docs など）はそのまま通る', () => {
   assert.deepEqual(scope('impl', [{ status: 'M', path: 'README.md' }]), []);
 });
 
-test('spec-ids init が作る specs/ の .gitkeep は、どの種類の PR でも止めない（決定 2）', () => {
+test('SPEC-SPECIDS-PR-SCOPE-023 spec-ids init が作る specs/ の .gitkeep は、どの種類の PR でも止めない（決定 2）', () => {
   const keeps = ['current', 'changes', 'releases'].map((d) => ({
     status: 'A',
     path: `specs/${d}/.gitkeep`,
@@ -358,7 +358,7 @@ test('spec-ids init が作る specs/ の .gitkeep は、どの種類の PR で�
 
 // ---- releases の走査 ----
 
-test('releasedIds: specs/releases/<tag>/<id>/ の <id> を集める', () => {
+test('SPEC-SPECIDS-PR-SCOPE-020 releasedIds: specs/releases/<tag>/<id>/ の <id> を集める', () => {
   const root = fixture({
     'specs/releases/v1.0.0/20261001-a/proposal.md': '',
     'specs/releases/v1.1.0/20261002-b/proposal.md': '',
@@ -418,7 +418,7 @@ const BASE_FILES = {
   'src/get-law.ts': 'export const x = 1;\n',
 };
 
-test('spec-ids pr-scope: 範囲に収まれば exit 0 で、1 行目に branch・種類・base・変更の数を出す', () => {
+test('SPEC-SPECIDS-PR-SCOPE-004 spec-ids pr-scope: 範囲に収まれば exit 0 で、1 行目に branch・種類・base・変更の数を出す', () => {
   const root = repo(BASE_FILES, 'spec/20261010-x', {
     'specs/changes/20261010-x/proposal.md': APPROVED_PROPOSAL,
   });
@@ -432,7 +432,7 @@ test('spec-ids pr-scope: 範囲に収まれば exit 0 で、1 行目に branch�
   assert.equal(r.stderr, '');
 });
 
-test('spec-ids pr-scope: 範囲の外の変更があれば exit 1 で、違反を stderr に出す', () => {
+test('SPEC-SPECIDS-PR-SCOPE-005 SPEC-SPECIDS-PR-SCOPE-008 spec-ids pr-scope: 範囲の外の変更があれば exit 1 で、違反を stderr に出す', () => {
   const root = repo(BASE_FILES, 'spec/20261010-x', {
     'specs/changes/20261010-x/proposal.md': APPROVED_PROPOSAL,
     'src/get-law.ts': 'export const x = 2;\n',
@@ -447,7 +447,7 @@ test('spec-ids pr-scope: 範囲の外の変更があれば exit 1 で、違反�
   );
 });
 
-test('spec-ids pr-scope: ブランチ名は --branch → HEAD_REF → 今のブランチ、基準は --base → BASE_REF → origin/main の順', () => {
+test('SPEC-SPECIDS-PR-SCOPE-002 SPEC-SPECIDS-PR-SCOPE-006 spec-ids pr-scope: ブランチ名は --branch → HEAD_REF → 今のブランチ、基準は --base → BASE_REF → origin/main の順', () => {
   const root = repo(BASE_FILES, 'feat/x', { 'src/get-law.ts': 'export const x = 2;\n' });
   // 今のブランチ（feat/x）は実装 PR
   const byHead = run(root, ['pr-scope'], { BASE_REF: 'main', HEAD_REF: '' });
@@ -470,7 +470,7 @@ test('spec-ids pr-scope: ブランチ名は --branch → HEAD_REF → 今のブ�
   assert.match(byDefault.stderr, /origin\/main\.\.\.HEAD/);
 });
 
-test('spec-ids pr-scope: 取り込み済みの差分の残りを消す実装 PR は、作業ツリーの specs/releases を見て通す', () => {
+test('SPEC-SPECIDS-PR-SCOPE-020 spec-ids pr-scope: 取り込み済みの差分の残りを消す実装 PR は、作業ツリーの specs/releases を見て通す', () => {
   const root = repo(
     {
       ...BASE_FILES,
@@ -484,7 +484,7 @@ test('spec-ids pr-scope: 取り込み済みの差分の残りを消す実装 PR 
   assert.equal(r.status, 0, r.stderr);
 });
 
-test('spec-ids pr-scope: 初版起こしのテスト名への ID の追加を git diff で読む', () => {
+test('SPEC-SPECIDS-PR-SCOPE-013 SPEC-SPECIDS-PR-SCOPE-016 spec-ids pr-scope: 初版起こしのテスト名への ID の追加を git diff で読む', () => {
   const t = 'src/get-law.test.ts';
   const base = { ...BASE_FILES, [t]: "it('x', () => {});\nit('y', () => {});\n" };
   const ok = repo(base, 'spec-init/get-law', {
@@ -499,7 +499,7 @@ test('spec-ids pr-scope: 初版起こしのテスト名への ID の追加を gi
   assert.match(r.stderr, /テスト名に仕様 ID を足すだけです/);
 });
 
-test('spec-ids pr-scope: 知らないオプション・値の無いオプションは exit 2、設定が無ければ exit 2', () => {
+test('SPEC-SPECIDS-PR-SCOPE-006 SPEC-SPECIDS-CONFIG-006 spec-ids pr-scope: 知らないオプション・値の無いオプションは exit 2、設定が無ければ exit 2', () => {
   const root = repo(BASE_FILES, 'feat/x', { 'src/get-law.ts': 'export const x = 2;\n' });
   assert.equal(run(root, ['pr-scope', '--json']).status, 2);
   assert.equal(run(root, ['pr-scope', '--base']).status, 2);

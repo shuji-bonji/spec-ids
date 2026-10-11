@@ -20,7 +20,7 @@ const base = (extra = {}) =>
 
 const files = (list) => [...new Set(list.map((x) => x.file))].sort();
 
-test('出力の 2 行目に proposals: の行を足す。1・3 行目と OK の行は 0.2.0 と同じ形', () => {
+test('SPEC-SPECIDS-CHECK-001 SPEC-SPECIDS-CHECK-002 出力の 2 行目に proposals: の行を足す。1・3 行目と OK の行は 0.2.0 と同じ形', () => {
   const root = fixture({
     'specs/current/nta_get_tsutatsu/spec.md': SPEC_OK,
     'specs/changes/20261009-a/proposal.md': prop({ approved: null, pr: null }),
@@ -41,7 +41,7 @@ test('出力の 2 行目に proposals: の行を足す。1・3 行目と OK の�
   });
 });
 
-test('check() の戻り値: counts に changesProposals・releasesProposals を足し、frontMatter・missingTargets・legacyLines を足す。既存のキーは残す', () => {
+test('SPEC-SPECIDS-CHECK-003 check() の戻り値: counts に changesProposals・releasesProposals を足し、frontMatter・missingTargets・legacyLines を足す。既存のキーは残す', () => {
   const root = base({
     'specs/changes/20261009-a/proposal.md': prop({ approved: null, pr: null }),
     'specs/releases/v1.0.0/20261001-b/proposal.md': prop(),
@@ -66,14 +66,14 @@ test('check() の戻り値: counts に changesProposals・releasesProposals を�
   assert.equal(r.ok, true);
 });
 
-test('検査 5 front matter の形: current の spec.md に front matter が無ければ止める', () => {
+test('SPEC-SPECIDS-CHECK-011 検査 5 front matter の形: current の spec.md に front matter が無ければ止める', () => {
   const root = base({ 'specs/current/nta_search_qa/spec.md': '# 機能: nta_search_qa\n' });
   const r = check(root, CONFIG);
   assert.equal(r.ok, false);
   assert.deepEqual(files(r.frontMatter), ['specs/current/nta_search_qa/spec.md']);
 });
 
-test('検査 5 front matter の形: proposal.md に front matter が無ければ止める（changes と releases の両方）', () => {
+test('SPEC-SPECIDS-CHECK-011 検査 5 front matter の形: proposal.md に front matter が無ければ止める（changes と releases の両方）', () => {
   const root = base({
     'specs/changes/20261009-a/proposal.md': '# 変更: a\n\n- 実装の変更: 要\n',
     'specs/releases/v1.0.0/20261001-b/proposal.md': '# 変更: b\n',
@@ -86,7 +86,7 @@ test('検査 5 front matter の形: proposal.md に front matter が無ければ
   ]);
 });
 
-test('検査 5 front matter の形: 草案（changes）は approved と pr が空でよく、取り込み済み（releases）は必須', () => {
+test('SPEC-SPECIDS-FRONTMATTER-012 検査 5 front matter の形: 草案（changes）は approved と pr が空でよく、取り込み済み（releases）は必須', () => {
   const ok = base({ 'specs/changes/20261009-a/proposal.md': prop({ approved: null, pr: null }) });
   assert.equal(check(ok, CONFIG).ok, true);
 
@@ -105,7 +105,7 @@ test('検査 5 front matter の形: 草案（changes）は approved と pr が�
   ]);
 });
 
-test('検査 5 front matter の形: implementation は required か none、targets は 1 つ以上の配列（草案でも必須）', () => {
+test('SPEC-SPECIDS-FRONTMATTER-013 検査 5 front matter の形: implementation は required か none、targets は 1 つ以上の配列（草案でも必須）', () => {
   const okRoot = base({
     'specs/changes/20261009-a/proposal.md': prop({
       approved: null,
@@ -134,7 +134,7 @@ test('検査 5 front matter の形: implementation は required か none、targe
   ]);
 });
 
-test('検査 5 front matter の形: approved は実在する YYYY-MM-DD、pr は正の整数でなければ止める', () => {
+test('SPEC-SPECIDS-FRONTMATTER-014 検査 5 front matter の形: approved は実在する YYYY-MM-DD、pr は正の整数でなければ止める', () => {
   const root = base({
     'specs/releases/v1.0.0/20261001-a/proposal.md': prop({ approved: '2026-13-01' }),
     'specs/releases/v1.0.0/20261001-b/proposal.md': prop({ approved: '2026-02-30' }),
@@ -154,7 +154,7 @@ test('検査 5 front matter の形: approved は実在する YYYY-MM-DD、pr は
   ]);
 });
 
-test('検査 5 front matter の形: 知らないキーがあれば止める（打ち間違い）', () => {
+test('SPEC-SPECIDS-FRONTMATTER-011 検査 5 front matter の形: 知らないキーがあれば止める（打ち間違い）', () => {
   const root = base({
     'specs/releases/v1.0.0/20261001-a/proposal.md': prop({ aproved: '2026-10-01' }),
     'specs/current/nta_search_qa/spec.md': cur('nta_search_qa', { targets: ['x'] }),
@@ -167,7 +167,7 @@ test('検査 5 front matter の形: 知らないキーがあれば止める（�
   assert.ok(r.frontMatter.some((f) => f.message.includes('aproved')));
 });
 
-test('検査 5 front matter の形: current の spec_id が無い、または設定の domain と違えば止める', () => {
+test('SPEC-SPECIDS-FRONTMATTER-015 検査 5 front matter の形: current の spec_id が無い、または設定の domain と違えば止める', () => {
   const root = base({
     'specs/current/nta_get_tsutatsu/spec.md': cur('nta_get_tsutatsu', { spec_id: 'EGOV' }),
     'specs/current/nta_search_qa/spec.md': cur('nta_search_qa', { spec_id: undefined }),
@@ -179,7 +179,7 @@ test('検査 5 front matter の形: current の spec_id が無い、または設
   ]);
 });
 
-test('検査 5 front matter の形: kind は任意で、値は tool・cli・db・common のどれか', () => {
+test('SPEC-SPECIDS-FRONTMATTER-016 検査 5 front matter の形: kind は任意で、値は tool・cli・db・common のどれか', () => {
   const ok = fixture({
     'specs/current/a/spec.md': cur('a'),
     'specs/current/b/spec.md': cur('b', { kind: 'tool' }),
@@ -199,7 +199,7 @@ test('検査 5 front matter の形: kind は任意で、値は tool・cli・db�
   ]);
 });
 
-test('検査 5 front matter の形: current は introduced_by が無ければ approved と pr が必須', () => {
+test('SPEC-SPECIDS-FRONTMATTER-017 検査 5 front matter の形: current は introduced_by が無ければ approved と pr が必須', () => {
   const root = base({
     'specs/current/nta_get_tsutatsu/spec.md': cur('nta_get_tsutatsu', { approved: undefined }),
     'specs/current/nta_search_qa/spec.md': cur('nta_search_qa', { pr: null }),
@@ -210,7 +210,7 @@ test('検査 5 front matter の形: current は introduced_by が無ければ ap
   ]);
 });
 
-test('検査 5 front matter の形: introduced_by があれば approved と pr は要らない', () => {
+test('SPEC-SPECIDS-FRONTMATTER-018 検査 5 front matter の形: introduced_by があれば approved と pr は要らない', () => {
   const root = base({
     'specs/current/cli_status/spec.md': cur('cli_status', {
       kind: 'cli',
@@ -229,7 +229,7 @@ test('検査 5 front matter の形: introduced_by があれば approved と pr �
   assert.equal(r.ok, true);
 });
 
-test('検査 5 front matter の形: introduced_by の差分が無い、またはその差分の targets にこの機能が無ければ止める', () => {
+test('SPEC-SPECIDS-FRONTMATTER-019 検査 5 front matter の形: introduced_by の差分が無い、またはその差分の targets にこの機能が無ければ止める', () => {
   const born = (id) =>
     cur('x', { approved: undefined, pr: undefined, introduced_by: id }).replace('# 機能: x', '');
   const root = base({
@@ -244,7 +244,7 @@ test('検査 5 front matter の形: introduced_by の差分が無い、または
   ]);
 });
 
-test('検査 5 front matter の形: 読み方に合わない書式（引用符・コメント・複数行）は止める', () => {
+test('SPEC-SPECIDS-CHECK-011 検査 5 front matter の形: 読み方に合わない書式（引用符・コメント・複数行）は止める', () => {
   const root = base({
     'specs/current/nta_search_qa/spec.md':
       '---\nspec_id: "NTA"\napproved: 2026-09-22 # 初版\npr: 49\n---\n# 機能\n',
@@ -257,7 +257,7 @@ test('検査 5 front matter の形: 読み方に合わない書式（引用符�
   ]);
 });
 
-test('検査 6 targets の漏れ: 差分の specs/<dir>/spec.md があるのに targets に <dir> が無ければ止める（changes と releases）', () => {
+test('SPEC-SPECIDS-CHECK-012 検査 6 targets の漏れ: 差分の specs/<dir>/spec.md があるのに targets に <dir> が無ければ止める（changes と releases）', () => {
   const root = base({
     'specs/changes/20261009-a/proposal.md': prop({ approved: null, pr: null }),
     'specs/changes/20261009-a/specs/nta_get_tsutatsu/spec.md': '## MODIFIED\n',
@@ -277,7 +277,7 @@ test('検査 6 targets の漏れ: 差分の specs/<dir>/spec.md があるのに 
   ]);
 });
 
-test('検査 6 targets の漏れ: changes の差分の targets の <dir> が specs/current/ にも差分の specs/ にも無ければ止める（打ち間違い）', () => {
+test('SPEC-SPECIDS-CHECK-013 検査 6 targets の漏れ: changes の差分の targets の <dir> が specs/current/ にも差分の specs/ にも無ければ止める（打ち間違い）', () => {
   const root = base({
     'specs/changes/20261009-a/proposal.md': prop({
       approved: null,
@@ -293,7 +293,7 @@ test('検査 6 targets の漏れ: changes の差分の targets の <dir> が spe
   ]);
 });
 
-test('検査 6 止めないもの: targets にあるのに差分の specs/<dir>/ が無い（逆向き。「実装の変更: 不要」や未決の直し）', () => {
+test('SPEC-SPECIDS-CHECK-014 検査 6 止めないもの: targets にあるのに差分の specs/<dir>/ が無い（逆向き。「実装の変更: 不要」や未決の直し）', () => {
   const root = base({
     'specs/changes/20261009-a/proposal.md': prop({
       implementation: 'none',
@@ -309,7 +309,7 @@ test('検査 6 止めないもの: targets にあるのに差分の specs/<dir>/
   assert.equal(r.ok, true);
 });
 
-test('検査 6 止めないもの: releases の差分の targets の <dir> が今の specs/current/ に無い（後の差分で消した機能）', () => {
+test('SPEC-SPECIDS-CHECK-015 検査 6 止めないもの: releases の差分の targets の <dir> が今の specs/current/ に無い（後の差分で消した機能）', () => {
   const root = base({
     'specs/releases/v1.0.0/20261001-a/proposal.md': prop({ targets: ['nta_removed_tool'] }),
   });
@@ -318,7 +318,7 @@ test('検査 6 止めないもの: releases の差分の targets の <dir> が�
   assert.equal(r.ok, true);
 });
 
-test('検査 6 止めないもの: proposal.md の「- 対象:」の文と targets の食い違い', () => {
+test('SPEC-SPECIDS-CHECK-016 検査 6 止めないもの: proposal.md の「- 対象:」の文と targets の食い違い', () => {
   const body = prop({ targets: ['nta_search_qa'] }).replace(
     '- 対象: `specs/current/nta_get_tsutatsu/spec.md`',
     '- 対象: `specs/current/nta_get_tsutatsu/spec.md`（SPEC-NTA-GET-TSUTATSU-003）'
@@ -327,7 +327,7 @@ test('検査 6 止めないもの: proposal.md の「- 対象:」の文と targe
   assert.equal(check(root, CONFIG).ok, true);
 });
 
-test('検査 7 古い行の残り: 「- 承認日:」で始まる行があれば、ファイルと行番号を出して止める', () => {
+test('SPEC-SPECIDS-CHECK-017 検査 7 古い行の残り: 「- 承認日:」で始まる行があれば、ファイルと行番号を出して止める', () => {
   const root = base({
     'specs/current/nta_search_qa/spec.md': `${cur('nta_search_qa')}- 承認日: 2026-09-22（PR #49）\n`,
     'specs/releases/v1.0.0/20261001-a/proposal.md': prop().replace(
@@ -349,7 +349,7 @@ test('検査 7 古い行の残り: 「- 承認日:」で始まる行があれば
   assert.deepEqual(r.frontMatter, []);
 });
 
-test('検査 7 古い行の残り: 行の途中の「- 承認日:」や、差分の specs/ の下の spec.md は見ない', () => {
+test('SPEC-SPECIDS-CHECK-018 検査 7 古い行の残り: 行の途中の「- 承認日:」や、差分の specs/ の下の spec.md は見ない', () => {
   const root = base({
     'specs/current/nta_search_qa/spec.md': `${cur('nta_search_qa')}本文で「- 承認日:」の書き方に触れる。\n`,
     'specs/changes/20261009-a/proposal.md': prop({ approved: null, pr: null }),
@@ -359,7 +359,7 @@ test('検査 7 古い行の残り: 行の途中の「- 承認日:」や、差分
   assert.deepEqual(r.legacyLines, []);
 });
 
-test('formatReport: 検査 5〜7 の食い違いを stderr 用の行に、種類ごとに見出しを付けて出す', () => {
+test('SPEC-SPECIDS-CHECK-020 formatReport: 検査 5〜7 の食い違いを stderr 用の行に、種類ごとに見出しを付けて出す', () => {
   const root = base({
     'specs/current/nta_search_qa/spec.md':
       '# 機能: nta_search_qa\n- 承認日: 2026-09-22（PR #49）\n',
@@ -385,7 +385,7 @@ test('formatReport: 検査 5〜7 の食い違いを stderr 用の行に、種類
   assert.ok(err.includes('  specs/current/nta_search_qa/spec.md:2'));
 });
 
-test('proposal.md の無いディレクトリは差分として数えない（releases の版の写しなど）', () => {
+test('SPEC-SPECIDS-CHECK-019 proposal.md の無いディレクトリは差分として数えない（releases の版の写しなど）', () => {
   const root = base({
     'specs/releases/v0.9.0/nta_get_tsutatsu/spec.md': '### SPEC-NTA-GET-TSUTATSU-099 古い版\n',
     'specs/releases/v1.0.0/20261001-x/specs/nta_search_qa/spec.md': '## MODIFIED\n',

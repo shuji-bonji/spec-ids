@@ -7,7 +7,7 @@ import { init } from '../src/init.mjs';
 import { globToRegExp } from '../src/scan.mjs';
 import { fixture } from './helpers.mjs';
 
-test('normalizeConfig は既定値を埋め、domain の形を検証する', () => {
+test('SPEC-SPECIDS-CONFIG-002 SPEC-SPECIDS-CONFIG-003 normalizeConfig は既定値を埋め、domain の形を検証する', () => {
   assert.deepEqual(normalizeConfig({ domain: 'NTA' }), {
     domain: 'NTA',
     dirPrefix: '',
@@ -17,14 +17,14 @@ test('normalizeConfig は既定値を埋め、domain の形を検証する', () 
   assert.throws(() => normalizeConfig({ domain: 'NTA', tests: 'src' }), /tests/);
 });
 
-test('findRoot は cwd から上へ辿って specs/spec-ids.json を見つける', () => {
+test('SPEC-SPECIDS-CONFIG-001 findRoot は cwd から上へ辿って specs/spec-ids.json を見つける', () => {
   const root = fixture({ 'specs/spec-ids.json': '{"domain":"NTA"}', 'src/deep/dir/.keep': '' });
   assert.equal(findRoot(join(root, 'src/deep/dir')), root);
   assert.equal(findRoot(fixture({ 'a.txt': '' })), null);
   assert.equal(loadConfig(root).domain, 'NTA');
 });
 
-test('globToRegExp は ** と * と ? を扱う', () => {
+test('SPEC-SPECIDS-CONFIG-004 globToRegExp は ** と * と ? を扱う', () => {
   const re = globToRegExp('src/**/*.test.ts');
   assert.equal(re.test('src/a.test.ts'), true);
   assert.equal(re.test('src/x/y/a.test.ts'), true);
@@ -34,7 +34,7 @@ test('globToRegExp は ** と * と ? を扱う', () => {
   assert.equal(globToRegExp('src/a?.ts').test('src/ab.ts'), true);
 });
 
-test('init は置き場・設定・workflow を作り、既存は変更しない', () => {
+test('SPEC-SPECIDS-INIT-001 SPEC-SPECIDS-INIT-002 SPEC-SPECIDS-INIT-003 SPEC-SPECIDS-INIT-004 init は置き場・設定・workflow を作り、既存は変更しない', () => {
   const root = fixture({ 'AGENTS.md': '# existing\n' });
   const r1 = init(root, { domain: 'EGOV', dirPrefix: 'egov_' });
   assert.deepEqual(r1.created, [

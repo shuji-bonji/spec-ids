@@ -75,7 +75,7 @@ const GET_TOC_TEXT = `get_toc（SPEC-EGOV-GET-TOC）
 | 2026-10-03 | 20261003-t5-docs-mismatch | #92 | v0.17.0 |
 | 2026-10-03 | 20261003-law-resolution | #95 | v0.18.0 |`;
 
-test('history の出力: 設計の get_toc の例と同じ表を出す（targets に get_toc を含まない差分は出さない）', () => {
+test('SPEC-SPECIDS-HISTORY-001 history の出力: 設計の get_toc の例と同じ表を出す（targets に get_toc を含まない差分は出さない）', () => {
   const root = egovGetToc();
   assert.equal(formatHistory(history(root, EGOV, 'get_toc')).join('\n'), GET_TOC_TEXT);
   const r = run(root, ['history', 'get_toc']);
@@ -83,14 +83,14 @@ test('history の出力: 設計の get_toc の例と同じ表を出す（targets
   assert.equal(r.stdout, `${GET_TOC_TEXT}\n`);
 });
 
-test('history: <dir> は spec.md のパスや specs/current/<dir> でも受ける', () => {
+test('SPEC-SPECIDS-HISTORY-002 history: <dir> は spec.md のパスや specs/current/<dir> でも受ける', () => {
   const root = egovGetToc();
   const byDir = history(root, EGOV, 'get_toc');
   assert.deepEqual(history(root, EGOV, 'specs/current/get_toc/spec.md'), byDir);
   assert.deepEqual(history(root, EGOV, 'specs/current/get_toc/'), byDir);
 });
 
-test('history: 承認日の順に並べ、同じ日は PR 番号の順（差分 ID の並びには依らない）', () => {
+test('SPEC-SPECIDS-HISTORY-003 history: 承認日の順に並べ、同じ日は PR 番号の順（差分 ID の並びには依らない）', () => {
   const root = fixture({
     'specs/current/get_toc/spec.md': cur({ approved: '2026-09-28', pr: 50 }),
     'specs/releases/v1.0.0/a-late/proposal.md': prop('2026-10-01', 20, ['get_toc']),
@@ -109,7 +109,7 @@ test('history: 承認日の順に並べ、同じ日は PR 番号の順（差分 
   );
 });
 
-test('history: specs/changes の差分は版を changes と出し、approved が空の草案は出さない', () => {
+test('SPEC-SPECIDS-HISTORY-004 history: specs/changes の差分は版を changes と出し、approved が空の草案は出さない', () => {
   const root = fixture({
     'specs/current/get_toc/spec.md': cur({ approved: '2026-09-28', pr: 50 }),
     'specs/changes/20261009-approved/proposal.md': prop('2026-10-09', 157, ['get_toc'], 'none'),
@@ -122,7 +122,7 @@ test('history: specs/changes の差分は版を changes と出し、approved が
   ]);
 });
 
-test('history: introduced_by のある機能は、初版の行の代わりに「<id>（新設）」の行を 1 つ出す', () => {
+test('SPEC-SPECIDS-HISTORY-005 history: introduced_by のある機能は、初版の行の代わりに「<id>（新設）」の行を 1 つ出す', () => {
   const root = fixture({
     'specs/current/cli_status/spec.md': `${fm({ spec_id: 'NTA', kind: 'cli', introduced_by: '20261004-db-location' })}# 機能\n`,
     'specs/releases/v0.25.0/20261004-db-location/proposal.md': prop('2026-10-05', 142, [
@@ -144,7 +144,7 @@ test('history: introduced_by のある機能は、初版の行の代わりに「
   ]);
 });
 
-test('history: 初版と差分が同じ PR のときは、初版と差分の 2 行を出す（1 行にまとめない）', () => {
+test('SPEC-SPECIDS-HISTORY-006 history: 初版と差分が同じ PR のときは、初版と差分の 2 行を出す（1 行にまとめない）', () => {
   const root = fixture({
     'specs/current/nta_get_bunshokaitou/spec.md': `${fm({ spec_id: 'NTA', approved: '2026-09-26', pr: 63 })}# 機能\n`,
     'specs/releases/v0.21.1/20260926-processing-flow/proposal.md': prop(
@@ -164,7 +164,7 @@ test('history: 初版と差分が同じ PR のときは、初版と差分の 2 �
   ]);
 });
 
-test('history --json: 同じ内容を JSON で出す', () => {
+test('SPEC-SPECIDS-HISTORY-007 history --json: 同じ内容を JSON で出す', () => {
   const root = egovGetToc();
   const h = history(root, EGOV, 'get_toc');
   assert.equal(h.dir, 'get_toc');
@@ -189,7 +189,7 @@ test('history --json: 同じ内容を JSON で出す', () => {
   assert.deepEqual(JSON.parse(r.stdout), h);
 });
 
-test('history --all: すべての <dir> を名前の順に出す（--json と組み合わせられる）', () => {
+test('SPEC-SPECIDS-HISTORY-008 history --all: すべての <dir> を名前の順に出す（--json と組み合わせられる）', () => {
   const root = egovGetToc();
   const all = historyAll(root, EGOV);
   assert.deepEqual(
@@ -216,7 +216,7 @@ test('history --all: すべての <dir> を名前の順に出す（--json と組
   assert.deepEqual(JSON.parse(json.stdout), all);
 });
 
-test('history: <dir> が specs/current/ に無いときは exit 2', () => {
+test('SPEC-SPECIDS-HISTORY-009 history: <dir> が specs/current/ に無いときは exit 2', () => {
   const root = egovGetToc();
   assert.throws(() => history(root, EGOV, 'get_tco'), /specs\/current/);
   const r = run(root, ['history', 'get_tco']);
@@ -225,7 +225,7 @@ test('history: <dir> が specs/current/ に無いときは exit 2', () => {
   assert.equal(run(root, ['history']).status, 2);
 });
 
-test('history: ファイルを書かない', () => {
+test('SPEC-SPECIDS-HISTORY-010 history: ファイルを書かない', () => {
   const root = egovGetToc();
   const before = snapshot(root);
   run(root, ['history', 'get_toc']);
@@ -233,6 +233,6 @@ test('history: ファイルを書かない', () => {
   assert.deepEqual(snapshot(root), before);
 });
 
-test('Node の API: history を index から import できる', () => {
+test('SPEC-SPECIDS-HISTORY-011 Node の API: history を index から import できる', () => {
   assert.equal(fromIndex, history);
 });

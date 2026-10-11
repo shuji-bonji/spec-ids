@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { check, formatReport } from '../src/check.mjs';
 import { CONFIG, fixture, itLine, SPEC_OK, TEST_OK } from './helpers.mjs';
 
-test('仕様とテストが一致していれば ok', () => {
+test('SPEC-SPECIDS-CHECK-001 仕様とテストが一致していれば ok', () => {
   const root = fixture({
     'specs/current/nta_get_tsutatsu/spec.md': SPEC_OK,
     'src/tools/handlers.test.ts': TEST_OK,
@@ -23,7 +23,7 @@ test('仕様とテストが一致していれば ok', () => {
   assert.match(formatReport(r).out.at(-1), /^OK/);
 });
 
-test('仕様にあってテストに無い ID を報告する', () => {
+test('SPEC-SPECIDS-CHECK-006 仕様にあってテストに無い ID を報告する', () => {
   const root = fixture({
     'specs/current/nta_get_tsutatsu/spec.md': SPEC_OK,
     'src/x.test.ts': itLine('SPEC-NTA-GET-TSUTATSU-001 a'),
@@ -37,7 +37,7 @@ test('仕様にあってテストに無い ID を報告する', () => {
   assert.equal(r.missingSpecs.length, 0);
 });
 
-test('テストにあって仕様に無い ID を報告する', () => {
+test('SPEC-SPECIDS-CHECK-008 テストにあって仕様に無い ID を報告する', () => {
   const root = fixture({
     'specs/current/nta_get_tsutatsu/spec.md': SPEC_OK,
     'src/x.test.ts': `${TEST_OK}\n${itLine('SPEC-NTA-GET-TSUTATSU-009 old')}`,
@@ -50,7 +50,7 @@ test('テストにあって仕様に無い ID を報告する', () => {
   );
 });
 
-test('見出しの重複を報告する（本文の参照が残っていても見出しで検知する）', () => {
+test('SPEC-SPECIDS-CHECK-004 見出しの重複を報告する（本文の参照が残っていても見出しで検知する）', () => {
   const dup = SPEC_OK.replace('### SPEC-NTA-GET-TSUTATSU-002', '### SPEC-NTA-GET-TSUTATSU-001');
   const root = fixture({ 'specs/current/nta_get_tsutatsu/spec.md': dup, 'src/x.test.ts': TEST_OK });
   const r = check(root, CONFIG);
@@ -62,7 +62,7 @@ test('見出しの重複を報告する（本文の参照が残っていても�
   assert.equal(r.duplicated[0].files.length, 2);
 });
 
-test('見出しの機能がディレクトリ名と違えば報告する', () => {
+test('SPEC-SPECIDS-CHECK-010 見出しの機能がディレクトリ名と違えば報告する', () => {
   const wrong = SPEC_OK.replace(
     '### SPEC-NTA-GET-TSUTATSU-002',
     '### SPEC-NTA-SEARCH-TSUTATSU-002'
@@ -82,7 +82,7 @@ test('見出しの機能がディレクトリ名と違えば報告する', () =>
   ]);
 });
 
-test('領域が設定と違えば報告する', () => {
+test('SPEC-SPECIDS-CHECK-010 領域が設定と違えば報告する', () => {
   const wrong = SPEC_OK.replaceAll('SPEC-NTA-', 'SPEC-EGOV-');
   const root = fixture({
     'specs/current/nta_get_tsutatsu/spec.md': wrong,
@@ -95,7 +95,7 @@ test('領域が設定と違えば報告する', () => {
 const ADDED_003 = '## ADDED\n\n### SPEC-NTA-GET-TSUTATSU-003 新しい\n';
 const TEST_003 = itLine('SPEC-NTA-GET-TSUTATSU-003 新しい振る舞い');
 
-test('仕様 PR のあと: changes にだけある ID はテストを求めない', () => {
+test('SPEC-SPECIDS-CHECK-007 仕様 PR のあと: changes にだけある ID はテストを求めない', () => {
   const root = fixture({
     'specs/current/nta_get_tsutatsu/spec.md': SPEC_OK,
     'specs/changes/20260925-x/spec.md': ADDED_003,
@@ -106,7 +106,7 @@ test('仕様 PR のあと: changes にだけある ID はテストを求めな�
   assert.equal(r.counts.changesHeadings, 1);
 });
 
-test('実装 PR の途中: テストの ID が changes にあれば、current がまだ古くても通る', () => {
+test('SPEC-SPECIDS-CHECK-008 実装 PR の途中: テストの ID が changes にあれば、current がまだ古くても通る', () => {
   const root = fixture({
     'specs/current/nta_get_tsutatsu/spec.md': SPEC_OK,
     'specs/changes/20260925-x/spec.md': ADDED_003,
@@ -115,7 +115,7 @@ test('実装 PR の途中: テストの ID が changes にあれば、current �
   assert.equal(check(root, CONFIG).ok, true);
 });
 
-test('取り込み後: current とテストに ID があり、releases へ移った差分は見ない', () => {
+test('SPEC-SPECIDS-CHECK-009 取り込み後: current とテストに ID があり、releases へ移った差分は見ない', () => {
   const root = fixture({
     'specs/current/nta_get_tsutatsu/spec.md': `${SPEC_OK}\n### SPEC-NTA-GET-TSUTATSU-003 新しい\n`,
     'specs/releases/v1.0.0/20260925-x/specs/nta_get_tsutatsu/spec.md': ADDED_003,
@@ -127,7 +127,7 @@ test('取り込み後: current とテストに ID があり、releases へ移っ
   assert.equal(r.counts.changesFiles, 0);
 });
 
-test('current にある ID は、changes に同じ見出しがあってもテストを求める', () => {
+test('SPEC-SPECIDS-CHECK-006 current にある ID は、changes に同じ見出しがあってもテストを求める', () => {
   const root = fixture({
     'specs/current/nta_get_tsutatsu/spec.md': SPEC_OK,
     'specs/changes/20260925-x/spec.md': '## MODIFIED\n\n### SPEC-NTA-GET-TSUTATSU-002 変える\n',
@@ -141,7 +141,7 @@ test('current にある ID は、changes に同じ見出しがあってもテス
   );
 });
 
-test('MODIFIED の見出しが current と同じ ID でも、重複として扱わない', () => {
+test('SPEC-SPECIDS-CHECK-005 MODIFIED の見出しが current と同じ ID でも、重複として扱わない', () => {
   const root = fixture({
     'specs/current/nta_get_tsutatsu/spec.md': SPEC_OK,
     'specs/changes/20260925-x/spec.md': '## MODIFIED\n\n### SPEC-NTA-GET-TSUTATSU-002 変える\n',
@@ -152,7 +152,7 @@ test('MODIFIED の見出しが current と同じ ID でも、重複として扱�
   assert.equal(r.duplicated.length, 0);
 });
 
-test('changes の中で同じ ID の見出しが 2 つあれば重複として報告する', () => {
+test('SPEC-SPECIDS-CHECK-004 changes の中で同じ ID の見出しが 2 つあれば重複として報告する', () => {
   const root = fixture({
     'specs/current/nta_get_tsutatsu/spec.md': SPEC_OK,
     'specs/changes/20260925-a/spec.md': ADDED_003,
@@ -167,7 +167,7 @@ test('changes の中で同じ ID の見出しが 2 つあれば重複として�
   );
 });
 
-test('仕様の ID は見出しだけを数える（本文の参照だけの ID はテストにあれば報告する）', () => {
+test('SPEC-SPECIDS-FORMAT-003 SPEC-SPECIDS-CHECK-008 仕様の ID は見出しだけを数える（本文の参照だけの ID はテストにあれば報告する）', () => {
   const root = fixture({
     'specs/current/nta_get_tsutatsu/spec.md': `${SPEC_OK}\n本文だけで SPEC-NTA-GET-TSUTATSU-005 に触れる。\n`,
     'src/x.test.ts': `${TEST_OK}\n${itLine('SPEC-NTA-GET-TSUTATSU-005 x')}`,
@@ -181,7 +181,7 @@ test('仕様の ID は見出しだけを数える（本文の参照だけの ID 
   assert.equal(r.missingTests.length, 0);
 });
 
-test('tests の glob は設定で変えられる（Jasmine の *.spec.ts など）', () => {
+test('SPEC-SPECIDS-CONFIG-004 tests の glob は設定で変えられる（Jasmine の *.spec.ts など）', () => {
   const root = fixture({
     'specs/current/get_law/spec.md': SPEC_OK.replaceAll('NTA-GET-TSUTATSU', 'EGOV-GET-LAW').replace(
       'spec_id: NTA',
@@ -195,7 +195,7 @@ test('tests の glob は設定で変えられる（Jasmine の *.spec.ts など�
   assert.equal(r.counts.testFiles, 1);
 });
 
-test('node_modules と dist は走査しない', () => {
+test('SPEC-SPECIDS-CONFIG-005 node_modules と dist は走査しない', () => {
   const root = fixture({
     'specs/current/nta_get_tsutatsu/spec.md': SPEC_OK,
     'src/x.test.ts': TEST_OK,
