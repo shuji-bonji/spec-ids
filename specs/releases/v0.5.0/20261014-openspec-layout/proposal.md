@@ -10,7 +10,7 @@ targets: [config, format, check, init, history, pr-scope]
 - 対象: `config`（設定の探し方と置き場の対応）、`format`（見出しの拾い方）、`check`（読む場所と出力の 1 行目）、`init`（`--layout openspec`）、`history`（版の列）、`pr-scope`（変えてよいパス）。`next` と `frontmatter` は変えない（`next` は config の置き場に従うだけ）
 - 実装の変更: 要（spec-ids 0.5.0）
 - 実装の変更の補足: ID の形式・front matter のキー・テスト名の規則は変えない。specs レイアウトのリポジトリ（houki 系、spec-ids 自身）の `check` の結果は、出力の 1 行目が増えること以外は 0.4.0 と同じになる
-- 状態: 草案
+- 状態: 取り込み済み（v0.5.0）
 - 起こした日: 2026-10-14（JST）
 - 起こした役: Spec Steward（`docs/operations.md` の 1.3）。PDF family の計画 `pdf-agent-stack/docs/specs/31-openspec-spec-ids-adoption-plan.md` の §2・§3.1 から起こした
 - 対象 Issue: 未起票（この PR を開くときに Issue を立て、`Refs #N` を付ける）
