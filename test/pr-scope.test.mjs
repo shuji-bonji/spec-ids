@@ -507,5 +507,8 @@ test('SPEC-SPECIDS-PR-SCOPE-006 SPEC-SPECIDS-CONFIG-006 spec-ids pr-scope: 知�
   assert.equal(run(root, ['pr-scope', 'extra']).status, 2);
   const noConfig = run(fixture({ 'a.txt': '' }), ['pr-scope'], { BASE_REF: 'main' });
   assert.equal(noConfig.status, 2);
-  assert.match(noConfig.stderr, /specs\/spec-ids\.json が見つかりません/);
+  assert.match(
+    noConfig.stderr,
+    /specs\/spec-ids\.json も openspec\/spec-ids\.json も見つかりません/
+  );
 });

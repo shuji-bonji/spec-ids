@@ -20,7 +20,7 @@ const base = (extra = {}) =>
 
 const files = (list) => [...new Set(list.map((x) => x.file))].sort();
 
-test('SPEC-SPECIDS-CHECK-001 SPEC-SPECIDS-CHECK-002 出力の 2 行目に proposals: の行を足す。1・3 行目と OK の行は 0.2.0 と同じ形', () => {
+test('SPEC-SPECIDS-CHECK-001 SPEC-SPECIDS-CHECK-002 出力は layout の行、current の行、proposals: の行、tests の行、OK の行の 5 行', () => {
   const root = fixture({
     'specs/current/nta_get_tsutatsu/spec.md': SPEC_OK,
     'specs/changes/20261009-a/proposal.md': prop({ approved: null, pr: null }),
@@ -32,6 +32,7 @@ test('SPEC-SPECIDS-CHECK-001 SPEC-SPECIDS-CHECK-002 出力の 2 行目に propos
   assert.equal(r.ok, true);
   assert.deepEqual(formatReport(r), {
     out: [
+      'layout: specs',
       'current: 1 files, 2 IDs / changes: 0 files, 0 IDs',
       'proposals: changes 1, releases 2',
       'tests: 1 files, 2 IDs',
@@ -368,8 +369,9 @@ test('SPEC-SPECIDS-CHECK-020 formatReport: 検査 5〜7 の食い違いを stder
   });
   const r = check(root, CONFIG);
   const { out, err } = formatReport(r);
-  assert.equal(out[1], 'proposals: changes 0, releases 1');
-  assert.equal(out.length, 3);
+  assert.equal(out[0], 'layout: specs');
+  assert.equal(out[2], 'proposals: changes 0, releases 1');
+  assert.equal(out.length, 4);
   const at = (heading) => err.indexOf(heading);
   assert.ok(at('front matter が無い、または形が違う:') >= 0);
   assert.ok(at('targets の漏れ:') >= 0);

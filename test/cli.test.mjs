@@ -13,7 +13,7 @@ test('bin の USAGE: history と pr-scope を載せ、migrate は載せない（
   assert.equal(migrate.status, 2);
 });
 
-test('SPEC-SPECIDS-CHECK-001 SPEC-SPECIDS-CHECK-002 SPEC-SPECIDS-CHECK-017 SPEC-SPECIDS-CHECK-020 spec-ids check: 出力の 2 行目が proposals: の行で、検査 5〜7 の食い違いがあれば exit 1', () => {
+test('SPEC-SPECIDS-CHECK-001 SPEC-SPECIDS-CHECK-002 SPEC-SPECIDS-CHECK-017 SPEC-SPECIDS-CHECK-020 spec-ids check: 出力の 1 行目が layout:、3 行目が proposals: の行で、検査 5〜7 の食い違いがあれば exit 1', () => {
   const files = {
     'specs/spec-ids.json': JSON.stringify({ domain: 'NTA', dirPrefix: 'nta_' }),
     'specs/current/nta_get_tsutatsu/spec.md': SPEC_OK,
@@ -28,6 +28,7 @@ test('SPEC-SPECIDS-CHECK-001 SPEC-SPECIDS-CHECK-002 SPEC-SPECIDS-CHECK-017 SPEC-
   const ok = run(fixture(files), ['check']);
   assert.equal(ok.status, 0, ok.stderr);
   assert.deepEqual(ok.stdout.split('\n'), [
+    'layout: specs',
     'current: 1 files, 2 IDs / changes: 0 files, 0 IDs',
     'proposals: changes 0, releases 1',
     'tests: 1 files, 2 IDs',
