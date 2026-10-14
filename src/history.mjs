@@ -8,17 +8,19 @@
  *     targets に `<dir>` を含み、approved と pr のあるもの。版は releases なら `<tag>`、changes なら `changes`
  *
  * 承認日の順に並べ、同じ日は PR 番号の順（同じ PR なら初版が先、次に差分 ID の順）。
+ * 0.5.0 から置き場はレイアウト（config.layout）で決まる。openspec レイアウトの取り込み済みの差分は、
+ * フォルダー名の先頭の `YYYY-MM-DD` が版、残りが差分 ID（SPEC-SPECIDS-HISTORY-012）。
  */
 import { readFileSync } from 'node:fs';
 import { featureOfDir } from './format.mjs';
 import { isDate, isPositiveInt, readFrontMatter } from './frontmatter.mjs';
 import { dirNameOfTarget } from './next.mjs';
-import { currentDirs, currentSpecPath, listProposals } from './proposals.mjs';
+import { currentDirs, currentSpecPath, currentSpecRel, listProposals } from './proposals.mjs';
 
 /** 承認済みの差分を { id, version, approved, pr, targets } で集める（front matter の読めないものは飛ばす） */
-function approvedProposals(root) {
+function approvedProposals(root, layout) {
   const out = [];
-  for (const p of listProposals(root)) {
+  for (const p of listProposals(root, layout)) {
     const fm = readFrontMatter(readFileSync(p.file, 'utf8'));
     if (!fm) continue;
     const { approved, pr, targets } = fm.data;
@@ -37,7 +39,7 @@ function compareRows(a, b) {
 }
 
 function historyOf(root, config, dir, proposals) {
-  const fm = readFrontMatter(readFileSync(currentSpecPath(root, dir), 'utf8'));
+  const fm = readFrontMatter(readFileSync(currentSpecPath(root, dir, config.layout), 'utf8'));
   const data = fm?.data ?? {};
   const bornBy =
     data.introduced_by !== undefined && data.introduced_by !== null
@@ -73,17 +75,19 @@ function historyOf(root, config, dir, proposals) {
  * @returns {{ dir: string, specId: string, rows: Array<{ kind: 'initial' | 'introduced' | 'change', approved: string, change: string | null, pr: number, version: string | null }> }}
  */
 export function history(root, config, target) {
+  const layout = config.layout ?? 'specs';
   const dir = dirNameOfTarget(target);
-  if (!currentDirs(root).includes(dir)) {
-    throw Object.assign(new Error(`specs/current/${dir}/spec.md がありません`), { exitCode: 2 });
+  if (!currentDirs(root, layout).includes(dir)) {
+    throw Object.assign(new Error(`${currentSpecRel(dir, layout)} がありません`), { exitCode: 2 });
   }
-  return historyOf(root, config, dir, approvedProposals(root));
+  return historyOf(root, config, dir, approvedProposals(root, layout));
 }
 
 /** すべての機能の履歴（`<dir>` の名前の順） */
 export function historyAll(root, config) {
-  const proposals = approvedProposals(root);
-  return currentDirs(root).map((dir) => historyOf(root, config, dir, proposals));
+  const layout = config.layout ?? 'specs';
+  const proposals = approvedProposals(root, layout);
+  return currentDirs(root, layout).map((dir) => historyOf(root, config, dir, proposals));
 }
 
 /** 履歴を人が読む行（Markdown の表）にする */

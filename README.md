@@ -1,6 +1,6 @@
 # spec-ids
 
-仕様書の見出しに付けた仕様 ID と、テスト名に付けた仕様 ID を突き合わせて、食い違いがあれば CI で PR を止めるための CLI です。仕様 ID の採番と、仕様の置き場（`specs/`）の初期化も行います。0.3.0 からは、仕様と差分の承認の記録（ファイルの先頭の front matter）を検査し、機能ごとの承認の履歴を表にして表示します。0.4.0 からは、PR の種類（ブランチ名の接頭辞）ごとに変えてよいパスを CI で検査します（`spec-ids pr-scope`）。
+仕様書の見出しに付けた仕様 ID と、テスト名に付けた仕様 ID を突き合わせて、食い違いがあれば CI で PR を止めるための CLI です。仕様 ID の採番と、仕様の置き場（`specs/`）の初期化も行います。0.3.0 からは、仕様と差分の承認の記録（ファイルの先頭の front matter）を検査し、機能ごとの承認の履歴を表にして表示します。0.4.0 からは、PR の種類（ブランチ名の接頭辞）ごとに変えてよいパスを CI で検査します（`spec-ids pr-scope`）。0.5.0 からは、[OpenSpec](https://github.com/Fission-AI/OpenSpec) の置き場（`openspec/specs`・`openspec/changes`・`openspec/changes/archive`）と要求の見出し（`### Requirement: SPEC-… 題`）も読めます（openspec レイアウト）。
 
 ## 目的と立ち位置
 
@@ -55,14 +55,15 @@ flowchart LR
 | 決めるもの                                                               | どこで決まるか                 | 変えられるか                                               |
 | ------------------------------------------------------------------------ | ------------------------------ | ---------------------------------------------------------- |
 | ID の形式 `SPEC-<領域>-<機能>-<3 桁>`                                    | このパッケージ                 | 変えられない。変えるときはパッケージの版が上がる           |
-| `specs/current` / `specs/changes` / `specs/releases` という置き場        | このパッケージ                 | 変えられない。機能をディレクトリ名から導くので、構造が契約 |
-| `###` の見出しの先頭が ID である、という仕様書の書き方                   | このパッケージ                 | 変えられない                                               |
+| 置き場。specs レイアウト（`specs/current` / `specs/changes` / `specs/releases`）か openspec レイアウト（`openspec/specs` / `openspec/changes` / `openspec/changes/archive`）のどちらか | このパッケージ                 | 2 つのどちらか。パスは変えられない。機能をディレクトリ名から導くので、構造が契約 |
+| `###` の見出しの先頭（または `### Requirement:` の直後）が ID である、という仕様書の書き方 | このパッケージ                 | 変えられない                                               |
 | 承認の記録を書く front matter のキーと値の形                             | このパッケージ                 | 変えられない                                               |
 | `describe` / `it` / `test` の第 1 引数に ID を書く、というテストの書き方 | このパッケージ                 | 変えられない                                               |
 | PR の種類を決めるブランチ名の接頭辞（`spec/`・`spec-init/`）             | このパッケージ                 | 変えられない                                               |
-| 領域（`NTA` など）                                                       | 利用側の `specs/spec-ids.json` | 設定 `domain`                                              |
-| ディレクトリ名から除く接頭辞（`nta_` など）                              | 利用側の `specs/spec-ids.json` | 設定 `dirPrefix`                                           |
-| テストファイルの場所と拡張子                                             | 利用側の `specs/spec-ids.json` | 設定 `tests`                                               |
+| 領域（`NTA` など）                                                       | 利用側の `spec-ids.json`       | 設定 `domain`                                              |
+| ディレクトリ名から除く接頭辞（`nta_` など）                              | 利用側の `spec-ids.json`       | 設定 `dirPrefix`                                           |
+| テストファイルの場所と拡張子                                             | 利用側の `spec-ids.json`       | 設定 `tests`                                               |
+| どちらのレイアウトか                                                     | 設定ファイルの場所（`specs/spec-ids.json` か `openspec/spec-ids.json`） | 任意の設定 `layout`（場所と同じ値だけ書ける）              |
 | 仕様書の本文の書き方（できること / できないこと / 未決 など）            | 利用側                         | このパッケージは見ない                                     |
 | 誰が `specs/current/` を書いてよいか、承認の手順                         | 利用側の `AGENTS.md`           | このパッケージは見ない（承認の記録の形だけを見る）         |
 
@@ -97,7 +98,7 @@ SPEC-<領域>-<機能>-<3 桁>
 
 ### 仕様書の書き方
 
-`specs/current/<dir>/spec.md` に、仕様 1 件を `###` の見出しで書きます。見出しの先頭が ID です。
+`specs/current/<dir>/spec.md` に、仕様 1 件を `###` の見出しで書きます。見出しの先頭が ID です。OpenSpec の要求の見出し `### Requirement: SPEC-NTA-GET-TSUTATSU-001 題`（`Requirement:` と 1 つ以上の空白の直後に ID）も、どちらのレイアウトでも同じに数えます（0.5.0）。
 
 ```markdown
 ### SPEC-NTA-GET-TSUTATSU-001 通達名を略称辞書で解決する
@@ -201,7 +202,34 @@ npx spec-ids init --domain NTA --dir-prefix nta_
 
 あわせて、`AGENTS.md`（または `CONTRIBUTING.md`）に貼る節を標準出力に表示します。ファイルには書き込みません。
 
-### 設定 `specs/spec-ids.json`
+#### OpenSpec のリポジトリ（openspec レイアウト）
+
+[OpenSpec](https://github.com/Fission-AI/OpenSpec) で `openspec init` を済ませたリポジトリでは、`--layout openspec` を付けます（0.5.0）。
+
+```bash
+npm install --save-dev @shuji-bonji/spec-ids @fission-ai/openspec
+npx openspec init --tools claude .
+npx spec-ids init --domain READER --tests "tests/**/*.test.ts" --layout openspec
+```
+
+| ファイル | 内容 |
+| --- | --- |
+| `openspec/spec-ids.json` | 設定（`layout: "openspec"` 入り） |
+| `.github/workflows/spec-gate.yml` | `npx openspec validate --all` → `npx spec-ids check` の順に走らせ、PR のときだけ `npx spec-ids pr-scope` を走らせる |
+
+`.gitkeep` と `specs/` は作りません（置き場は `openspec init` が作ります）。`openspec/config.yaml`（または `.yml`）が無ければ、何も作らずに `openspec init` を案内して exit 2 で終わります。置き場の対応は次のとおりです。各コマンドの検査の意味はどちらのレイアウトでも同じで、`check` の出力の 1 行目に `layout: specs` か `layout: openspec` が出ます。
+
+| 役割 | specs レイアウト | openspec レイアウト |
+| --- | --- | --- |
+| 出荷済みの正（current） | `specs/current/<dir>/spec.md` | `openspec/specs/<dir>/spec.md` |
+| 差分の草案（changes） | `specs/changes/<id>/`（`proposal.md`、`specs/<dir>/spec.md`） | `openspec/changes/<id>/`（同じ。`archive/` は含めない） |
+| 取り込み済み（releases） | `specs/releases/<tag>/<id>/` | `openspec/changes/archive/<フォルダー名>/`。`openspec archive` が付ける先頭の `YYYY-MM-DD-` を版、残りを差分の ID として読む |
+| 仕様 PR が変えてよい範囲（`pr-scope`） | `specs/changes/` | `openspec/changes/`（`archive/` を除く） |
+| 実装 PR が通す移動（`pr-scope`） | `specs/changes/<id>/` → `specs/releases/<tag>/<id>/` | `openspec/changes/<id>/` → `openspec/changes/archive/YYYY-MM-DD-<id>/`（`openspec archive` の結果） |
+
+`history` の「版」の欄は、openspec レイアウトでは archive のフォルダー名の `YYYY-MM-DD`（無ければ `-`）です。1 つのリポジトリで 2 つのレイアウトを同時には使えません（同じディレクトリに両方の設定があれば `openspec/spec-ids.json` を使います）。
+
+### 設定 `specs/spec-ids.json`（または `openspec/spec-ids.json`）
 
 ```json
 {
@@ -216,8 +244,9 @@ npx spec-ids init --domain NTA --dir-prefix nta_
 | `domain`    | 必須                    | 領域。英大文字                                                                        |
 | `dirPrefix` | 任意（既定 `""`）       | ディレクトリ名から機能を導くときに除く接頭辞                                          |
 | `tests`     | 任意（既定は上の 2 つ） | テストファイルの glob。`**`、`*`、`?` が使えます。Jasmine なら `["src/**/*.spec.ts"]` |
+| `layout`    | 任意                    | `"specs"` か `"openspec"`。書かなければ設定ファイルの場所で決まります。場所と違う値はエラー |
 
-設定は、コマンドを実行したディレクトリから上へ辿って最初に見つかった `specs/spec-ids.json` を使います。そのディレクトリが基点になります。
+設定は、コマンドを実行したディレクトリから上へ辿って最初に見つかった設定ファイルを使います。各ディレクトリでは `openspec/spec-ids.json`、次に `specs/spec-ids.json` の順に探し、見つかった場所でレイアウトが決まります。そのディレクトリが基点になります。
 
 ### 採番 `spec-ids next`
 
@@ -385,11 +414,13 @@ OK: この種類の PR が変えてよい範囲に収まっています
 
 | コマンド | 0 | 1 | 2 |
 | --- | --- | --- | --- |
-| `check` | 食い違いが無い | 食い違いがある | `specs/spec-ids.json` が無い |
-| `pr-scope` | 範囲に収まっている | 範囲の外の変更か、承認の空欄がある | `specs/spec-ids.json` が無い、知らないオプション・値の無いオプション、git が失敗した（基準のコミットが無い、git のリポジトリでない） |
-| `next` | ID を表示した | - | `specs/spec-ids.json` が無い、引数が足りない・`--count` が正の整数でない |
-| `history` | 履歴を表示した | - | `specs/spec-ids.json` が無い、引数の組み合わせが違う、機能が `specs/current/` に無い |
-| `init` | 作った（既存のファイルは変更しない） | - | `--domain` が無い |
+| `check` | 食い違いが無い | 食い違いがある | 設定が無い |
+| `pr-scope` | 範囲に収まっている | 範囲の外の変更か、承認の空欄がある | 設定が無い、知らないオプション・値の無いオプション、git が失敗した（基準のコミットが無い、git のリポジトリでない） |
+| `next` | ID を表示した | - | 設定が無い、引数が足りない・`--count` が正の整数でない |
+| `history` | 履歴を表示した | - | 設定が無い、引数の組み合わせが違う、機能が current の置き場に無い |
+| `init` | 作った（既存のファイルは変更しない） | - | `--domain` が無い、`--layout` が `specs`・`openspec` 以外、`--layout openspec` なのに `openspec/config.yaml` が無い |
+
+「設定が無い」は、`specs/spec-ids.json` も `openspec/spec-ids.json` も見つからないことです。
 
 知らないサブコマンドは、使い方を表示して exit 2 で終わります。どのコマンドも、設定の形が違う（`domain` が英大文字でない など）ときは、理由を標準エラーに出して exit 1 で終わります。`check` と `pr-scope` は、数えた結果と `OK:` の行を標準出力に、食い違いを標準エラーに出します。
 
@@ -406,8 +437,9 @@ npx @shuji-bonji/spec-ids@0.3.0 migrate --write  # 食い違いが無いとき�
 
 - テストを実行しない（それは `npm test` の仕事）
 - 番号の欠番を見ない（`003` を消して `001` `002` `004` になっていても通る）
-- 仕様の本文を見ない（数えるのは `###` の見出しの ID だけ。`ADDED` / `MODIFIED` / `REMOVED` の意味、本文の参照は見ない）。承認の記録は front matter と「- 承認日:」の行だけを見る
-- `specs/releases/` の `spec.md` の見出しの ID を数えない（`proposal.md` の front matter と、差分の `specs/<dir>/` の構成だけを見る）
+- 仕様の本文を見ない（数えるのは `###` の見出しの ID だけ。`ADDED` / `MODIFIED` / `REMOVED` の意味、本文の参照、OpenSpec の `## Purpose`・`#### Scenario:` は見ない）。承認の記録は front matter と「- 承認日:」の行だけを見る
+- `specs/releases/`（openspec レイアウトでは `openspec/changes/archive/`）の `spec.md` の見出しの ID を数えない（`proposal.md` の front matter と、差分の `specs/<dir>/` の構成だけを見る）
+- OpenSpec の `openspec validate` が見るもの（節構成・Scenario・SHALL）を見ない。`openspec archive` を呼ばない。2 つのレイアウトのあいだの変換をしない
 - `proposal.md` の「- 対象:」などの本文と、front matter の `targets` を突き合わせない
 - 承認フローや役割を管理しない（`pr-scope` が見るのは、ブランチ名の接頭辞・変わったパス・テストの行の差分・front matter の承認の空欄だけ）
 - `specs/current/` へ差分を取り込まない、`specs/releases/` へコピーしない

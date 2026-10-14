@@ -4,14 +4,20 @@
  *
  *   spec-ids check                                   仕様とテストの ID を突き合わせる。不一致なら exit 1
  *   spec-ids next <spec.md のパス | ディレクトリ名> [--count N]   次の ID を表示する
- *   spec-ids init --domain NTA [--dir-prefix nta_] [--tests "src/**\/*.test.ts,tests/**\/*.test.ts"]
+ *   spec-ids init --domain NTA [--dir-prefix nta_] [--tests "src/**\/*.test.ts,tests/**\/*.test.ts"] [--layout specs|openspec]
  *                                                    置き場と設定と CI を作る
  *   spec-ids history <dir> [--json] / --all [--json] 機能ごとの承認の履歴を表示する
  *   spec-ids pr-scope [--base <ref>] [--branch <name>] PR の種類ごとに変えてよいパスと承認の空欄を検査する
  */
 import { readFileSync } from 'node:fs';
 import { check, formatReport } from '../src/check.mjs';
-import { CONFIG_PATH, DEFAULT_TESTS, findRoot, loadConfig } from '../src/config.mjs';
+import {
+  CONFIG_PATH,
+  DEFAULT_TESTS,
+  findConfig,
+  loadConfig,
+  OPENSPEC_CONFIG_PATH,
+} from '../src/config.mjs';
 import { formatHistory, history, historyAll } from '../src/history.mjs';
 import { init } from '../src/init.mjs';
 import { nextIds } from '../src/next.mjs';
@@ -20,13 +26,13 @@ import { formatScopeReport, prScope } from '../src/pr-scope.mjs';
 const USAGE = `使い方:
   spec-ids check
   spec-ids next <specs/current/<dir>/spec.md | <dir>> [--count N]
-  spec-ids init --domain <領域> [--dir-prefix <接頭辞>] [--tests <glob,glob>]
+  spec-ids init --domain <領域> [--dir-prefix <接頭辞>] [--tests <glob,glob>] [--layout specs|openspec]
   spec-ids history <dir> [--json]
   spec-ids history --all [--json]
   spec-ids pr-scope [--base <ref>] [--branch <name>]
   spec-ids --version
 
-設定は ${CONFIG_PATH}（cwd から上へ辿って探す）。`;
+設定は ${CONFIG_PATH} または ${OPENSPEC_CONFIG_PATH}（cwd から上へ辿って探す。見つかった場所で置き場のレイアウトが決まる）。`;
 
 function opt(args, name) {
   const i = args.indexOf(name);
@@ -45,14 +51,14 @@ function positionals(args) {
 }
 
 function requireRoot() {
-  const root = findRoot();
-  if (!root) {
+  const found = findConfig();
+  if (!found) {
     console.error(
-      `${CONFIG_PATH} が見つかりません。リポジトリのルートで \`spec-ids init --domain <領域>\` を実行してください`
+      `${CONFIG_PATH} も ${OPENSPEC_CONFIG_PATH} も見つかりません。リポジトリのルートで \`spec-ids init --domain <領域>\`（OpenSpec のリポジトリなら \`--layout openspec\` を付ける）を実行してください`
     );
     process.exit(2);
   }
-  return root;
+  return found.root;
 }
 
 function main(argv) {
@@ -92,7 +98,13 @@ function main(argv) {
             .map((s) => s.trim())
             .filter(Boolean)
         : DEFAULT_TESTS;
-      const { created, skipped, agentsSection } = init(process.cwd(), { domain, dirPrefix, tests });
+      const layout = opt(args, '--layout') ?? 'specs';
+      const { created, skipped, agentsSection } = init(process.cwd(), {
+        domain,
+        dirPrefix,
+        tests,
+        layout,
+      });
       for (const f of created) console.log(`作成: ${f}`);
       for (const f of skipped) console.log(`既存のため変更なし: ${f}`);
       console.log('\nAGENTS.md（または CONTRIBUTING.md）に次の節を貼ってください:\n');

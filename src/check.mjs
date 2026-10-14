@@ -18,11 +18,16 @@
  * 0.3.0 から、承認の記録（front matter）の検査 5〜7 も行う（src/approval.mjs）。
  *   5. front matter の形  6. targets の漏れ  7. 古い「- 承認日:」の行の残り
  *
+ * 0.5.0 から、読む置き場はレイアウト（config.layout。src/layout.mjs）で決まる。openspec レイアウトでは
+ * `openspec/specs` が current、`openspec/changes`（`archive/` を除く）が changes、`openspec/changes/archive` が releases。
+ * 検査の意味は変えない（SPEC-SPECIDS-CHECK-021〜023）。
+ *
  * テストは実行しない。番号の欠番も見ない。
  */
 import { readFileSync } from 'node:fs';
 import { checkApproval } from './approval.mjs';
 import { HEADING_RE, ID_RE, parseId, TEST_NAME_RE } from './format.mjs';
+import { layoutOf } from './layout.mjs';
 import {
   changesSpecFiles,
   collect,
@@ -44,8 +49,9 @@ function duplicatesIn(headings, box) {
  * @returns {{ ok: boolean, counts: object, duplicated: Array, missingTests: Array, missingSpecs: Array, misplaced: Array, frontMatter: Array, missingTargets: Array, legacyLines: Array }}
  */
 export function check(root, config) {
-  const current = currentSpecFiles(root);
-  const changes = changesSpecFiles(root);
+  const layout = layoutOf(config).name;
+  const current = currentSpecFiles(root, layout);
+  const changes = changesSpecFiles(root, layout);
   const tests = testFiles(root, config.tests);
 
   const currentHeadings = collectHeadings(root, current);
@@ -71,7 +77,7 @@ export function check(root, config) {
 
   const misplaced = [];
   for (const f of current) {
-    const feature = featureOfSpecPath(root, f, config.dirPrefix);
+    const feature = featureOfSpecPath(root, f, config.dirPrefix, layout);
     if (!feature) continue;
     const text = readFileSync(f, 'utf8');
     for (const m of text.matchAll(HEADING_RE)) {
@@ -89,6 +95,7 @@ export function check(root, config) {
   const approval = checkApproval(root, config);
 
   return {
+    layout,
     ok:
       duplicated.length === 0 &&
       missingTests.length === 0 &&
@@ -120,7 +127,9 @@ export function check(root, config) {
 /** 結果を人が読む行にする。stdout 用と stderr 用に分けて返す */
 export function formatReport(result) {
   const { counts } = result;
+  const l = layoutOf(result.layout ?? 'specs');
   const out = [
+    `layout: ${l.name}`,
     `current: ${counts.currentFiles} files, ${counts.currentHeadings} IDs / changes: ${counts.changesFiles} files, ${counts.changesHeadings} IDs`,
     `proposals: changes ${counts.changesProposals}, releases ${counts.releasesProposals}`,
     `tests: ${counts.testFiles} files, ${counts.testIds} IDs`,
@@ -138,11 +147,11 @@ export function formatReport(result) {
     for (const m of result.misplaced) err.push(`  ${m.id}  (${m.file}、期待する形: ${m.expected})`);
   }
   if (result.missingTests.length > 0) {
-    err.push('', 'specs/current にあってテストに無い ID:');
+    err.push('', `${l.current} にあってテストに無い ID:`);
     for (const m of result.missingTests) err.push(`  ${m.id}  (${m.files.join(', ')})`);
   }
   if (result.missingSpecs.length > 0) {
-    err.push('', 'テストにあって specs/current にも specs/changes にも見出しが無い ID:');
+    err.push('', `テストにあって ${l.current} にも ${l.changes} にも見出しが無い ID:`);
     for (const m of result.missingSpecs) err.push(`  ${m.id}  (${m.files.join(', ')})`);
   }
   if (result.frontMatter.length > 0) {
@@ -157,7 +166,7 @@ export function formatReport(result) {
         err.push(`  ${m.file}: ${spec} があるのに、targets に ${m.dir} がありません`);
       } else {
         err.push(
-          `  ${m.file}: targets の ${m.dir} が、specs/current/ にも差分の specs/ にもありません`
+          `  ${m.file}: targets の ${m.dir} が、${l.current}/ にも差分の specs/ にもありません`
         );
       }
     }

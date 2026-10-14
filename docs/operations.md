@@ -353,6 +353,16 @@ houki-nta-mcp で差分 2 件（`20260924-tsutatsu-clause-forms`、`20260925-tsu
 
 テストの書き方がリポジトリごとに違う点（Vitest の `it`、Jasmine の `describe`、`node:test` の `test`）は、`specs/spec-ids.json` の `tests` の glob で合わせます。`spec-ids check` は `describe` / `it` / `test` の第 1 引数の文字列を読みます。
 
+### 9.1 OpenSpec のリポジトリ（openspec レイアウト。0.5.0）
+
+置き場と手順に [OpenSpec](https://github.com/Fission-AI/OpenSpec) を使うリポジトリでは、1 の代わりに次を行います。2〜5 は同じです。
+
+1. `npx openspec init --tools claude .` で `openspec/`（`specs/`・`changes/`・`changes/archive/`・`config.yaml`）と `.claude/` の指示を作る。`@fission-ai/openspec` を devDependencies に入れる
+2. `npm install --save-dev @shuji-bonji/spec-ids` と `npx spec-ids init --domain <領域> --tests "<glob>" --layout openspec` で、`openspec/spec-ids.json` と openspec 用の `spec-gate.yml`（`npx openspec validate --all` → `npx spec-ids check`）を作る
+3. `openspec/config.yaml` の `rules.specs` に、見出しを `### Requirement: SPEC-<領域>-<機能>-<3 桁> 題` の形にすること、ID は `npx spec-ids next <capability>` で採ることを書く
+
+置き場の対応は README の「OpenSpec のリポジトリ（openspec レイアウト）」の表のとおりです。仕様 PR は `openspec/changes/<slug>/`（`archive/` を除く）だけを変え、実装 PR の最後に `openspec archive <slug> -y` を実行すると、差分が `openspec/specs/<dir>/spec.md` に取り込まれ、変更フォルダーが `openspec/changes/archive/YYYY-MM-DD-<slug>/` へ移ります（Publisher の取り込みを OpenSpec が行う形）。`<slug>` に日付を入れないでください（`openspec archive` が付けるため、二重になります）。`proposal.md` の front matter（`approved`・`pr`・`implementation`・`targets`）は OpenSpec が読まずに通し、archive でもそのまま残ります。
+
 ## 10. まだ決まっていないこと
 
 | 項目 | 状態 |

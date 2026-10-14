@@ -52,3 +52,16 @@ jobs:
           git -c user.name=ci -c user.email=ci@example.com add -A
           git -c user.name=ci -c user.email=ci@example.com commit -q -m spec
           BASE_REF=main node "$GITHUB_WORKSPACE/bin/spec-ids.mjs" pr-scope
+      # openspec レイアウト（0.5.0）: init --layout openspec → check → next
+      - name: smoke test (openspec layout)
+        run: |
+          set -eu
+          tmp=$(mktemp -d)
+          cd "$tmp"
+          mkdir -p openspec && printf 'schema: spec-driven\n' > openspec/config.yaml
+          node "$GITHUB_WORKSPACE/bin/spec-ids.mjs" init --domain DEMO --tests "tests/**/*.test.ts" --layout openspec
+          mkdir -p openspec/specs/get-thing tests
+          printf -- '---\nspec_id: DEMO\napproved: 2026-10-14\npr: 1\n---\n# get-thing\n\n## Requirements\n\n### Requirement: SPEC-DEMO-GET-THING-001 x\n' > openspec/specs/get-thing/spec.md
+          printf "it('SPEC-DEMO-GET-THING-001 x', () => {});\n" > tests/a.test.ts
+          node "$GITHUB_WORKSPACE/bin/spec-ids.mjs" check | head -1 | grep -qx 'layout: openspec'
+          test "$(node "$GITHUB_WORKSPACE/bin/spec-ids.mjs" next get-thing)" = "SPEC-DEMO-GET-THING-002"

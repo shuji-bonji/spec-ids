@@ -6,7 +6,7 @@ import { basename } from 'node:path';
 import { featureOfDir, formatId, parseId } from './format.mjs';
 import { collectHeadings, specFiles } from './scan.mjs';
 
-/** `specs/current/<dir>/spec.md` のパス、`specs/current/<dir>`、または `<dir>` からディレクトリ名を取る */
+/** `<current>/<dir>/spec.md` のパス、`<current>/<dir>`、または `<dir>` からディレクトリ名を取る（どちらのレイアウトでも同じ） */
 export function dirNameOfTarget(target) {
   const trimmed = target.replace(/[\\/]+$/, '');
   if (/(^|[\\/])spec\.md$/.test(trimmed)) return basename(trimmed.replace(/[\\/]spec\.md$/, ''));
@@ -16,7 +16,7 @@ export function dirNameOfTarget(target) {
 export function nextIds(root, config, target, count = 1) {
   const feature = featureOfDir(dirNameOfTarget(target), config.dirPrefix);
   let max = 0;
-  for (const id of collectHeadings(root, specFiles(root)).keys()) {
+  for (const id of collectHeadings(root, specFiles(root, config.layout ?? 'specs')).keys()) {
     const p = parseId(id);
     if (p && p.domain === config.domain && p.feature === feature && p.n > max) max = p.n;
   }

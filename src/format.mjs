@@ -13,8 +13,12 @@
 /** ID の形（本文のどこにあっても拾う）。機能の部分はハイフンを含んでよく、末尾 3 桁が番号 */
 export const ID_RE = /SPEC-[A-Z]+-[A-Z0-9-]+-[0-9]{3}\b/g;
 
-/** 仕様 1 件の見出し。`### SPEC-NTA-GET-TSUTATSU-001 題` の形。採番・重複検知・機能の照合はこの見出しだけを数える */
-export const HEADING_RE = /^###\s+(SPEC-[A-Z]+-[A-Z0-9-]+-[0-9]{3})\b/gm;
+/**
+ * 仕様 1 件の見出し。`### SPEC-NTA-GET-TSUTATSU-001 題` の形。採番・重複検知・機能の照合はこの見出しだけを数える。
+ * 0.5.0 から、OpenSpec の要求の見出し `### Requirement: SPEC-… 題` も同じに数える（SPEC-SPECIDS-FORMAT-006。
+ * `Requirement:` と ID のあいだに 1 つ以上の空白が要り、大文字小文字は区別する）。レイアウトによらず両方を拾う。
+ */
+export const HEADING_RE = /^###\s+(?:Requirement:\s+)?(SPEC-[A-Z]+-[A-Z0-9-]+-[0-9]{3})\b/gm;
 
 /** テスト名。describe( / it( / test( の第 1 引数の文字列リテラル */
 export const TEST_NAME_RE = /\b(?:describe|it|test)\(\s*(['"`])((?:\\.|(?!\1).)*)\1/g;

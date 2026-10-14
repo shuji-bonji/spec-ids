@@ -13,6 +13,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { isDate, isPositiveInt, readFrontMatter } from './frontmatter.mjs';
+import { layoutOf } from './layout.mjs';
 import { currentDirs, currentSpecPath, diffSpecDirs, listProposals } from './proposals.mjs';
 import { relPath } from './scan.mjs';
 
@@ -89,7 +90,8 @@ export function proposalMessages(data, box) {
  * current の spec.md の front matter のキーと値の形。
  * @param proposalsById Map<差分 ID, Array<front matter の data>>（introduced_by の照合に使う）
  */
-export function currentMessages(data, { domain, dir, proposalsById }) {
+export function currentMessages(data, { domain, dir, proposalsById, layout = 'specs' }) {
+  const l = layoutOf(layout);
   const msgs = unknownKeys(data, CURRENT_KEYS);
   if (!Object.hasOwn(data, 'spec_id')) msgs.push('spec_id がありません');
   else if (data.spec_id !== domain)
@@ -101,7 +103,7 @@ export function currentMessages(data, { domain, dir, proposalsById }) {
     const id = String(born);
     const found = proposalsById.get(id) ?? [];
     if (found.length === 0) {
-      msgs.push(`introduced_by の差分 ${id} が specs/changes/ にも specs/releases/ にもありません`);
+      msgs.push(`introduced_by の差分 ${id} が ${l.changes}/ にも ${l.releases}/ にもありません`);
     } else if (!found.some((d) => Array.isArray(d.targets) && d.targets.includes(dir))) {
       msgs.push(`introduced_by の差分 ${id} の targets に ${dir} がありません`);
     }
@@ -126,11 +128,12 @@ function legacyLinesOf(text) {
  * @returns {{ counts: { changesProposals: number, releasesProposals: number }, frontMatter: Array<{ file: string, message: string }>, missingTargets: Array<{ file: string, dir: string, kind: 'unlisted' | 'unknown' }>, legacyLines: Array<{ file: string, line: number }> }}
  */
 export function checkApproval(root, config) {
+  const layout = config.layout ?? 'specs';
   const frontMatter = [];
   const missingTargets = [];
   const legacyLines = [];
 
-  const proposals = listProposals(root).map((p) => {
+  const proposals = listProposals(root, layout).map((p) => {
     const text = readFileSync(p.file, 'utf8');
     return { ...p, text, fm: readFrontMatter(text) };
   });
@@ -140,11 +143,11 @@ export function checkApproval(root, config) {
     if (!proposalsById.has(p.id)) proposalsById.set(p.id, []);
     proposalsById.get(p.id).push(p.fm.data);
   }
-  const dirs = currentDirs(root);
+  const dirs = currentDirs(root, layout);
 
   // 検査 5・7（current）
   for (const dir of dirs) {
-    const path = currentSpecPath(root, dir);
+    const path = currentSpecPath(root, dir, layout);
     const rel = relPath(root, path);
     const text = readFileSync(path, 'utf8');
     const fm = readFrontMatter(text);
@@ -159,6 +162,7 @@ export function checkApproval(root, config) {
         domain: config.domain,
         dir,
         proposalsById,
+        layout,
       })) {
         frontMatter.push({ file: rel, message });
       }

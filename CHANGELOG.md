@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.5.0 — 2026-10-14
+
+OpenSpec（`@fission-ai/openspec` 1.14.1）の置き場と要求の見出しを読めるようにした（openspec レイアウト。仕様 PR #16、差分 `20261014-openspec-layout`）。specs レイアウト（houki 系・spec-ids 自身）の `check`・`history`・`pr-scope` の結果は、`check` の出力の 1 行目が増えること以外は 0.4.0 と同じ。
+
+### 互換性
+
+- `spec-ids check` の標準出力の 1 行目に `layout: specs` または `layout: openspec` が増えた（SPEC-SPECIDS-CHECK-001・020・023）。出力の行数を数えているスクリプトは 1 行ずらす
+- Node の API の `check()` の戻り値に `layout` が増えた。ほかのキーと値は同じ
+- 設定が見つからないときの文が「`specs/spec-ids.json` も `openspec/spec-ids.json` も見つかりません。…（OpenSpec のリポジトリなら `--layout openspec` を付ける）…」になった（SPEC-SPECIDS-CONFIG-006）
+- `### Requirement: SPEC-… 題` の見出しを、どちらのレイアウトでも仕様 ID の見出しとして数えるようになった（SPEC-SPECIDS-FORMAT-003・006）。specs レイアウトの仕様書にこの形の行が無ければ、結果は変わらない
+- `check` の標準エラー出力の見出しの文（「specs/current にあってテストに無い ID:」など）のパスが、レイアウトの置き場で出る。specs レイアウトでは同じ文
+
+### 足したもの
+
+- 設定を `openspec/spec-ids.json` → `specs/spec-ids.json` の順に探し、見つかった場所でレイアウトを決める（SPEC-SPECIDS-CONFIG-001・007・008）。任意の設定 `layout`（場所と同じ値だけ書ける）。`src/layout.mjs` に置き場の定義をまとめた
+- openspec レイアウトの置き場: current = `openspec/specs/<dir>/spec.md`、changes = `openspec/changes/<id>/`（`archive/` を除く）、releases = `openspec/changes/archive/<フォルダー名>/`。フォルダー名の先頭の `YYYY-MM-DD-` が版、残りが差分の ID（SPEC-SPECIDS-CONFIG-009・010）
+- `check`: openspec レイアウトの置き場を読み、specs レイアウトでは `openspec/` を、openspec レイアウトでは `specs/` を読まない（SPEC-SPECIDS-CHECK-021〜023）
+- `init --layout openspec`: `openspec/config.yaml`（または `.yml`）が無ければ何も作らず exit 2。`openspec/spec-ids.json` と、`npx openspec validate --all` → `npx spec-ids check` の順に動く `spec-gate.yml`（`templates/spec-gate-openspec.yml`）を作る。`AGENTS.md` に貼る節は openspec 用（`templates/agents-section-openspec.md`）。`.gitkeep` と `specs/` は作らない（SPEC-SPECIDS-INIT-005〜007）
+- `history`: openspec レイアウトでは「差分」の欄を `YYYY-MM-DD-` を除いた ID、「版」の欄を `YYYY-MM-DD`（無ければ `-`）にする。文の中のパスと `--all` の走査も置き場に従う（SPEC-SPECIDS-HISTORY-012・013）
+- `pr-scope`: openspec レイアウトでは `openspec/changes/`（`archive/` を除く）・`openspec/specs/<dir>/spec.md`・`openspec/changes/archive/` に読み替えて検査し、実装 PR で `openspec/changes/<id>/` → `openspec/changes/archive/YYYY-MM-DD-<id>/` の移動と archive 済みの差分の残りの削除を通す（SPEC-SPECIDS-PR-SCOPE-024・025）
+- Node の API に `findConfig`・`OPENSPEC_CONFIG_PATH`・`LAYOUTS`・`LAYOUT_NAMES`・`layoutOf`・`parseArchiveName`・`pathsOf` を足した。`checkScope`・`releasedIds`・`currentDirs`・`currentSpecPath`・`listProposals`・`currentSpecFiles`・`changesSpecFiles`・`specFiles`・`featureOfSpecPath` に `layout` の引数（既定 `specs`）を足した
+- `test/layout.test.mjs`（openspec レイアウトの受入テスト 17 件）
+
+### しないこと
+
+- OpenSpec の `openspec validate` が見るもの（節構成・Scenario・SHALL）を見ない。`openspec archive` を呼ばない。2 つのレイアウトのあいだの変換をしない。`@spec` のマーカーと受入基準の hash（0.6.0 の候補）は入れていない
+
+### 利用側で行うこと
+
+- specs レイアウトのリポジトリは、依存を `^0.5.0` に上げるだけでよい（0.x の `^` は minor を跨がないので、上げないと 0.5.0 は入らない）。`check` の 1 行目が増える
+- OpenSpec のリポジトリは、`openspec init` の後に `npx spec-ids init --domain <領域> --layout openspec` を実行し、`@fission-ai/openspec` を devDependencies に入れる（`spec-gate.yml` の `npx openspec` のため）
+
 ## 0.4.0 — 2026-10-10
 
 houki-egov-mcp・houki-nta-mcp・houki-abbreviations にコピーで置いていた `.github/scripts/check-pr-scope.mjs` を、サブコマンド `spec-ids pr-scope` として取り込んだ（#9）。あわせて、0.3.0 だけに置いた `spec-ids migrate` を外した。

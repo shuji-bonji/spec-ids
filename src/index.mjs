@@ -1,5 +1,13 @@
 export { check, formatReport } from './check.mjs';
-export { CONFIG_PATH, DEFAULT_TESTS, findRoot, loadConfig, normalizeConfig } from './config.mjs';
+export {
+  CONFIG_PATH,
+  DEFAULT_TESTS,
+  findConfig,
+  findRoot,
+  loadConfig,
+  normalizeConfig,
+  OPENSPEC_CONFIG_PATH,
+} from './config.mjs';
 export {
   featureOfDir,
   formatId,
@@ -12,6 +20,7 @@ export {
 export { readFrontMatter } from './frontmatter.mjs';
 export { formatHistory, history, historyAll } from './history.mjs';
 export { init } from './init.mjs';
+export { LAYOUT_NAMES, LAYOUTS, layoutOf, parseArchiveName } from './layout.mjs';
 export { dirNameOfTarget, nextIds } from './next.mjs';
 export {
   checkScope,
@@ -20,6 +29,7 @@ export {
   kindOf,
   onlyIdsAdded,
   parseNameStatus,
+  pathsOf,
   prScope,
   releasedIds,
 } from './pr-scope.mjs';

@@ -18,11 +18,16 @@
  *
  * 0.3.0 まで houki-egov-mcp・houki-nta-mcp・houki-abbreviations の `.github/scripts/check-pr-scope.mjs` に
  * あったコピーを、spec-ids#9 の決定でまとめたもの。
+ *
+ * 0.5.0 から、パスはレイアウト（src/layout.mjs）で決まる。openspec レイアウトでは `specs/changes/` を
+ * `openspec/changes/`（`archive/` を除く）、`specs/current/<dir>/spec.md` を `openspec/specs/<dir>/spec.md`、
+ * `specs/releases/` を `openspec/changes/archive/` に読み替える（SPEC-SPECIDS-PR-SCOPE-024・025）。検査の意味は同じ。
  */
 import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { readFrontMatter } from './frontmatter.mjs';
+import { layoutOf, parseArchiveName } from './layout.mjs';
 import { globToRegExp } from './scan.mjs';
 
 /** 仕様 ID とその後ろの空白。テスト名から ID を除いて比べるのに使う */
@@ -31,12 +36,33 @@ const ID_WITH_SPACE_RE = /SPEC-[A-Z]+-[A-Z0-9-]+-[0-9]{3}\s*/g;
 const ID_RE = /SPEC-[A-Z]+-[A-Z0-9-]+-[0-9]{3}/g;
 /** 設定 `tests` に合わなくても、テストファイルとして扱う名前（3 つのコピーと同じ） */
 const TEST_FILE_RE = /\.test\.[cm]?[jt]s$/;
-const CURRENT_SPEC_RE = /^specs\/current\/[^/]+\/spec\.md$/;
-const PROPOSAL_RE = /^specs\/changes\/[^/]+\/proposal\.md$/;
-/** `specs/changes/<id>/` の下のパス。<id> を取り出す */
-const CHANGE_PATH_RE = /^specs\/changes\/([^/]+)\//;
-/** `spec-ids init` が作る置き場の印。どの種類の PR で足しても消してもよい */
-const PLACEHOLDER_RE = /^specs\/(current|changes|releases)\/\.gitkeep$/;
+
+const esc = (s) => s.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
+
+/** レイアウトごとの、PR の範囲を決めるパスの形 */
+export function pathsOf(layout = 'specs') {
+  const l = layoutOf(layout);
+  const changes = `${l.changes}/`;
+  const releases = `${l.releases}/`;
+  const excluded = l.changesExclude.map((d) => `${changes}${d}/`);
+  /** `<changes>/` の下で、`archive/` などを除いたパスか */
+  const inChanges = (p) => p.startsWith(changes) && !excluded.some((e) => p.startsWith(e));
+  return {
+    layout: l,
+    changes,
+    releases,
+    inChanges,
+    currentSpecRe: new RegExp(`^${esc(l.current)}/[^/]+/spec\\.md$`),
+    proposalRe: new RegExp(`^${esc(l.changes)}/([^/]+)/proposal\\.md$`),
+    /** `<changes>/<id>/` の下のパス。<id> を取り出す */
+    changePathRe: new RegExp(`^${esc(l.changes)}/([^/]+)/`),
+    placeholderRe: new RegExp(`^(?:${l.placeholders.map(esc).join('|')})$`),
+    /** 実装 PR が許す移動の説明（文の中に出す） */
+    moveNote: l.flatReleases
+      ? `許されるのは ${releases} への移動と、archive 済みの差分の残りを消すことだけ`
+      : `許されるのは ${releases} への移動と、取り込み済みの差分の残りを消すことだけ`,
+  };
+}
 
 /** 比べる基準のコミットの既定値（環境変数 BASE_REF も `--base` も無いとき） */
 export const DEFAULT_BASE = 'origin/main';
@@ -135,26 +161,28 @@ export function checkScope({
   diffOf,
   released = new Set(),
   isTestFile = testFileMatcher(),
+  layout = 'specs',
 }) {
+  const P = pathsOf(layout);
   const errors = [];
   const touched = (c) => [c.path, c.from].filter(Boolean);
-  const scoped = changes.filter((c) => !PLACEHOLDER_RE.test(c.path));
+  const scoped = changes.filter((c) => !P.placeholderRe.test(c.path));
 
   if (kind === 'spec') {
-    const proposals = scoped.filter((c) => c.status !== 'D' && PROPOSAL_RE.test(c.path));
+    const proposals = scoped.filter((c) => c.status !== 'D' && P.proposalRe.test(c.path));
     const noImpl = proposals.some((c) => noImplementation(read(c.path)));
     for (const c of scoped) {
       for (const p of touched(c)) {
-        if (p.startsWith('specs/changes/')) continue;
-        if (noImpl && CURRENT_SPEC_RE.test(p)) continue;
-        const note = CURRENT_SPEC_RE.test(p)
-          ? '（specs/current/ を書けるのは、proposal.md の front matter が implementation: none のときだけ）'
+        if (P.inChanges(p)) continue;
+        if (noImpl && P.currentSpecRe.test(p)) continue;
+        const note = P.currentSpecRe.test(p)
+          ? `（${P.layout.current}/ を書けるのは、proposal.md の front matter が implementation: none のときだけ）`
           : '';
-        errors.push(`仕様 PR（spec/*）は specs/changes/ だけを変えます: ${p}${note}`);
+        errors.push(`仕様 PR（spec/*）は ${P.changes} だけを変えます: ${p}${note}`);
       }
     }
     if (proposals.length === 0) {
-      errors.push('仕様 PR（spec/*）に specs/changes/<id>/proposal.md がありません');
+      errors.push(`仕様 PR（spec/*）に ${P.changes}<id>/proposal.md がありません`);
     }
     for (const c of proposals) {
       if (!proposalApproved(read(c.path))) {
@@ -165,7 +193,7 @@ export function checkScope({
     }
   } else if (kind === 'spec-init') {
     for (const c of scoped) {
-      if (CURRENT_SPEC_RE.test(c.path) && c.status !== 'D' && c.status !== 'R') continue;
+      if (P.currentSpecRe.test(c.path) && c.status !== 'D' && c.status !== 'R') continue;
       if (isTestFile(c.path) && c.status === 'M') {
         if (!onlyIdsAdded(diffOf(c.path))) {
           errors.push(
@@ -176,34 +204,28 @@ export function checkScope({
       }
       for (const p of touched(c)) {
         errors.push(
-          `初版起こし（spec-init/*）は specs/current/<dir>/spec.md とテスト名だけを変えます: ${p}`
+          `初版起こし（spec-init/*）は ${P.layout.current}/<dir>/spec.md とテスト名だけを変えます: ${p}`
         );
       }
     }
   } else {
     for (const c of scoped) {
-      if (
-        c.status === 'R' &&
-        c.from.startsWith('specs/changes/') &&
-        c.path.startsWith('specs/releases/')
-      ) {
+      if (c.status === 'R' && P.inChanges(c.from) && c.path.startsWith(P.releases)) {
         continue;
       }
-      if (c.status === 'D' && released.has(c.path.match(CHANGE_PATH_RE)?.[1] ?? '')) {
+      if (c.status === 'D' && released.has(c.path.match(P.changePathRe)?.[1] ?? '')) {
         continue;
       }
       for (const p of touched(c)) {
-        if (p.startsWith('specs/changes/')) {
-          errors.push(
-            `仕様 PR の外で specs/changes/ を変えています（許されるのは specs/releases/ への移動と、取り込み済みの差分の残りを消すことだけ）: ${p}`
-          );
+        if (P.inChanges(p)) {
+          errors.push(`仕様 PR の外で ${P.changes} を変えています（${P.moveNote}）: ${p}`);
         }
       }
     }
   }
 
   for (const c of scoped) {
-    if (c.status === 'D' || !CURRENT_SPEC_RE.test(c.path)) continue;
+    if (c.status === 'D' || !P.currentSpecRe.test(c.path)) continue;
     if (!currentApproved(read(c.path))) {
       errors.push(
         `承認日と PR 番号がありません（マージの前に front matter の approved と pr を書く。差分で作った機能なら introduced_by）: ${c.path}`
@@ -213,13 +235,21 @@ export function checkScope({
   return [...new Set(errors)];
 }
 
-/** `specs/releases/<tag>/<id>/` の <id> を集める */
-export function releasedIds(root) {
-  const dir = join(root, 'specs', 'releases');
+/**
+ * 取り込み済みの差分の <id> を集める。specs レイアウトは `specs/releases/<tag>/<id>/`、
+ * openspec レイアウトは `openspec/changes/archive/<フォルダー名>/`（先頭の `YYYY-MM-DD-` を除く）
+ */
+export function releasedIds(root, layout = 'specs') {
+  const l = layoutOf(layout);
+  const dir = join(root, ...l.releases.split('/'));
   if (!existsSync(dir)) return new Set();
   const ids = new Set();
   for (const tag of readdirSync(dir, { withFileTypes: true })) {
     if (!tag.isDirectory()) continue;
+    if (l.flatReleases) {
+      ids.add(parseArchiveName(tag.name).id);
+      continue;
+    }
     for (const id of readdirSync(join(dir, tag.name), { withFileTypes: true })) {
       if (id.isDirectory()) ids.add(id.name);
     }
@@ -253,8 +283,8 @@ function gitIn(root) {
  * - 変わったファイル: `git diff --name-status -M --relative <base>...HEAD`（root からの相対パス）
  * - ファイルの中身: 作業ツリーの root からの相対パスで読む
  *
- * @param {string} root `specs/spec-ids.json` のあるディレクトリ
- * @param {{ tests?: string[] }} config
+ * @param {string} root 設定ファイル（`specs/spec-ids.json` または `openspec/spec-ids.json`）のあるディレクトリ
+ * @param {{ tests?: string[], layout?: 'specs' | 'openspec' }} config
  * @param {{ base?: string, branch?: string, env?: Record<string, string | undefined> }} [options]
  * @returns {{ base: string, branch: string, kind: string, changes: Array<{status: string, path: string, from?: string}>, errors: string[] }}
  */
@@ -265,14 +295,16 @@ export function prScope(root, config, { base, branch, env = process.env } = {}) 
   const headRef = branch || env.HEAD_REF || git(['rev-parse', '--abbrev-ref', 'HEAD']).trim();
   const kind = kindOf(headRef);
   const range = `${baseRef}...HEAD`;
+  const layout = config.layout ?? 'specs';
   const changes = parseNameStatus(git(['diff', '--name-status', '-M', '--relative', range]));
   const errors = checkScope({
     kind,
     changes,
     read: (p) => readFileSync(join(root, p), 'utf8'),
     diffOf: (p) => git(['diff', '-U0', '--relative', range, '--', p]),
-    released: releasedIds(root),
+    released: releasedIds(root, layout),
     isTestFile: testFileMatcher(config.tests),
+    layout,
   });
   return { base: baseRef, branch: headRef, kind, changes, errors };
 }

@@ -1,14 +1,15 @@
 /**
- * specs/ とテストファイルの走査。ファイルの置き場（specs/current, specs/changes）は固定で、
- * 設定では変えられない。機能をディレクトリ名から導くので、構造そのものが契約。
+ * 置き場とテストファイルの走査。置き場はレイアウト（src/layout.mjs）で決まり、設定では変えられない。
+ * 機能をディレクトリ名から導くので、構造そのものが契約。
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { featureOfDir, HEADING_RE } from './format.mjs';
+import { layoutOf } from './layout.mjs';
 
 const SKIP_DIRS = new Set(['node_modules', 'dist', 'coverage', '.git']);
 
-export function walk(dir, pred, out = []) {
+export function walk(dir, pred, out = [], skipTop = []) {
   let entries;
   try {
     entries = readdirSync(dir);
@@ -16,7 +17,7 @@ export function walk(dir, pred, out = []) {
     return out;
   }
   for (const name of entries) {
-    if (SKIP_DIRS.has(name)) continue;
+    if (SKIP_DIRS.has(name) || skipTop.includes(name)) continue;
     const p = join(dir, name);
     let st;
     try {
@@ -30,19 +31,23 @@ export function walk(dir, pred, out = []) {
   return out;
 }
 
-/** 現行の仕様ファイル（`specs/current/` の下の `spec.md`）。出荷済みの正 */
-export function currentSpecFiles(root) {
-  return walk(join(root, 'specs', 'current'), (p) => p.endsWith(`${sep}spec.md`));
+const isSpecMd = (p) => p.endsWith(`${sep}spec.md`);
+
+/** 現行の仕様ファイル（current の置き場の下の `spec.md`）。出荷済みの正 */
+export function currentSpecFiles(root, layout = 'specs') {
+  const l = layoutOf(layout);
+  return walk(join(root, ...l.current.split('/')), isSpecMd);
 }
 
-/** 進行中の差分の仕様ファイル（`specs/changes/` の下の `spec.md`）。承認済みでも未出荷 */
-export function changesSpecFiles(root) {
-  return walk(join(root, 'specs', 'changes'), (p) => p.endsWith(`${sep}spec.md`));
+/** 進行中の差分の仕様ファイル（changes の置き場の下の `spec.md`。openspec では `archive/` を除く）。承認済みでも未出荷 */
+export function changesSpecFiles(root, layout = 'specs') {
+  const l = layoutOf(layout);
+  return walk(join(root, ...l.changes.split('/')), isSpecMd, [], l.changesExclude);
 }
 
-/** 現行と進行中の差分を合わせた仕様ファイル（採番が読む範囲）。releases/ は見ない */
-export function specFiles(root) {
-  return [...currentSpecFiles(root), ...changesSpecFiles(root)];
+/** 現行と進行中の差分を合わせた仕様ファイル（採番が読む範囲）。releases は見ない */
+export function specFiles(root, layout = 'specs') {
+  return [...currentSpecFiles(root, layout), ...changesSpecFiles(root, layout)];
 }
 
 /**
@@ -84,11 +89,17 @@ export function testFiles(root, globs) {
   });
 }
 
-/** `specs/current/<dir>/spec.md` なら、そのディレクトリ名から導いた機能を返す。それ以外は null */
-export function featureOfSpecPath(root, specPath, dirPrefix) {
+/** `<current の置き場>/<dir>/spec.md` なら、そのディレクトリ名から導いた機能を返す。それ以外は null */
+export function featureOfSpecPath(root, specPath, dirPrefix, layout = 'specs') {
+  const base = layoutOf(layout).current.split('/');
   const rel = relative(root, specPath).split(sep);
-  if (rel[0] === 'specs' && rel[1] === 'current' && rel.length === 4 && rel[3] === 'spec.md') {
-    return featureOfDir(rel[2], dirPrefix);
+  const head = rel.slice(0, base.length);
+  if (
+    head.every((seg, i) => seg === base[i]) &&
+    rel.length === base.length + 2 &&
+    rel[rel.length - 1] === 'spec.md'
+  ) {
+    return featureOfDir(rel[base.length], dirPrefix);
   }
   return null;
 }
