@@ -19,7 +19,7 @@ on:
     branches: [main]
 
 env:
-  SPEC_IDS_VERSION: 0.4.0
+  SPEC_IDS_VERSION: 0.5.0
 
 jobs:
   spec-gate:
